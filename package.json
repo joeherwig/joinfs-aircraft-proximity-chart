@@ -1,0 +1,23 @@
+{
+  "name": "joinfs-proximity-chart",
+  "version": "1.0.0",
+  "description": "Interactive d3 proximity chart of aircraft types, using the JoinFS model-matching similarity. Self-contained web component.",
+  "private": true,
+  "type": "module",
+  "scripts": {
+    "build": "esbuild src/component.js --bundle --minify --format=iife --target=es2020 --loader:.css=text --outfile=joinfs-proximity-chart.js",
+    "sync-data": "node scripts/sync-data.mjs",
+    "test": "node --test test/*.test.mjs",
+    "check-locales": "node scripts/check-locales.mjs"
+  },
+  "devDependencies": {
+    "d3-array": "^3.2.4",
+    "d3-drag": "^3.0.0",
+    "d3-force": "^3.0.0",
+    "d3-scale": "^4.0.2",
+    "d3-scale-chromatic": "^3.1.0",
+    "d3-selection": "^3.0.0",
+    "d3-zoom": "^3.0.0",
+    "esbuild": "^0.25.0"
+  }
+}
