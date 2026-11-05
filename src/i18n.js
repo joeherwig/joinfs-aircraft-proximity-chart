@@ -76,7 +76,7 @@ export const EN = {
   'detail.proximity': 'Proximity: {n}%',
   'detail.points': 'Points: {n}',
   'detail.bonusManufacturer': 'Same manufacturer and similar size',
-  'detail.bonusRelated': 'Related type (visually similar)',
+  'detail.bonusNearIdentical': 'Almost identical (very similar specs)',
   'feature.mtow': 'Weight',
   'feature.span': 'Wing span',
   'feature.length': 'Length',

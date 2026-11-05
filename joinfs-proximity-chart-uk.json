@@ -39,7 +39,7 @@
   "detail.proximity": "Близькість: {n}%",
   "detail.points": "Бали: {n}",
   "detail.bonusManufacturer": "Той самий виробник і подібний розмір",
-  "detail.bonusRelated": "Споріднений тип (візуально схожий)",
+  "detail.bonusNearIdentical": "Майже ідентичний (дуже схожі характеристики)",
   "feature.mtow": "Маса",
   "feature.span": "Розмах крила",
   "feature.length": "Довжина",

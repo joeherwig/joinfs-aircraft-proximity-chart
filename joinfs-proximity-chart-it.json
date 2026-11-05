@@ -39,7 +39,7 @@
   "detail.proximity": "Prossimità: {n} %",
   "detail.points": "Punti: {n}",
   "detail.bonusManufacturer": "Stesso costruttore e dimensioni simili",
-  "detail.bonusRelated": "Tipo correlato (visivamente simile)",
+  "detail.bonusNearIdentical": "Quasi identico (dati molto simili)",
   "feature.mtow": "Peso",
   "feature.span": "Apertura alare",
   "feature.length": "Lunghezza",

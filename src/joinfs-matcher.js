@@ -2,6 +2,7 @@
 // SimilarityScorer, AirlineResolver, TypeRole, ManufacturerKey), in the same order and with the same constants, so the map shows the installed model JoinFS
 // would inject. Pure functions, no DOM. Parity with JoinFS is pinned by test/fixtures/MatchScenarios.json (written by JoinFS.Tests/MatchScenarioExportTests).
 import { titleTokens, sharedTitleWords, titleBonus } from './models.js';
+import { nearIdenticalBonus, NEAR_FROM } from './proximity.js';
 
 // ---- roles ---------------------------------------------------------------------------------------------------------------------------------------
 export const ROLE = { SingleProp: 1, TwinProp: 2, Airliner: 3, Rotorcraft: 4, Glider: 5, Fighter: 6, Bomber: 7, FourProp: 8, Airship: 9, Balloon: 10 };
@@ -103,26 +104,6 @@ export function makeDoc8643(table) {
     isRecognized: icao => !!icao && byIcao.has(String(icao).toUpperCase()),
     isCollapsed: icao => !!icao && !!byIcao.get(String(icao).toUpperCase())?.collapsed,
     majorityManufacturer: icao => byIcao.get(String(icao ?? '').toUpperCase())?.maker ?? '',
-  };
-}
-
-// ---- related types (XPMP2_related.dat: the first group of a code wins) --------------------------------------------------------------------------
-export function makeRelated(text) {
-  const groupOf = new Map();
-  let group = 0;
-  for (const raw of String(text).split(/\r?\n/)) {
-    const line = raw.split(';')[0];
-    const codes = line.split(/[ \t]+/).filter(Boolean);
-    if (codes.length < 2) continue;
-    group++;
-    for (const code of codes) if (!groupOf.has(code.toUpperCase())) groupOf.set(code.toUpperCase(), group);
-  }
-  return {
-    areRelated(a, b) {
-      if (!a || !b || a.toUpperCase() === b.toUpperCase()) return false;
-      const ga = groupOf.get(a.toUpperCase()), gb = groupOf.get(b.toUpperCase());
-      return ga !== undefined && ga === gb;
-    },
   };
 }
 
@@ -371,13 +352,16 @@ function sameManufacturerBonus(remote, candidate) {
 }
 
 // ---- the matcher -----------------------------------------------------------------------------------------------------------------------------------
-const MIN_MATCH_SCORE = 20, MIN_SIMILARITY = 0.5, SIMILARITY_POINTS_MAX = 100, RELATED_TYPE_POINTS = 120, SAME_HINT_POINTS = 250, TITLE_INFERRED_FACTOR = 0.75;
+const MIN_MATCH_SCORE = 20, MIN_SIMILARITY = 0.5, SIMILARITY_POINTS_MAX = 100, OTHER_KIND_POINTS = 120, SAME_HINT_POINTS = 250, TITLE_INFERRED_FACTOR = 0.75;
+const LIGHT_WAKE = 'L', AIRLINER_MIN_MTOW_KG = 7000; // the mass is used only when the Doc8643 wake category is unknown
+const NOT_AIRLINER_ROLES = new Set([ROLE.Glider, ROLE.Balloon, ROLE.Airship]);
+const CALLSIGN_WITH_AIRLINE = /^([A-Z]{3})\d{1,4}[A-Z]{0,2}$/; // UAE123, DLH4AB - a registration (N748UA, D-EABC) is not one
 
 /**
- * @param {{reference, doc8643, related, airlines}} data  makeReference / makeDoc8643 / makeRelated / makeAirlines results
+ * @param {{reference, doc8643, airlines}} data  makeReference / makeDoc8643 / makeAirlines results
  * @returns {{ prepareModels(parsed): object[], match(prepared, request): {model, type, total, ranking}|null }}
  */
-export function createMatcher({ reference, doc8643, related, airlines }) {
+export function createMatcher({ reference, doc8643, airlines }) {
   // what a model's specs are depends only on its type, class code, role and (for untagged / folded types) title: resolved once per kind, like JoinFS' ModelSpecCache
   const specsOf = new Map();
   /** Substitution.Model after JoinFS loaded it from a models list: the class code, wake and typerole re-derived from the Doc8643 designator. */
@@ -505,9 +489,24 @@ export function createMatcher({ reference, doc8643, related, airlines }) {
 
   /** the request as the map sends it: missing fields are empty */
   const normalize = r => ({
-    title: r.title ?? '', livery: r.livery ?? '', icaoType: r.icaoType ?? '', icaoAirline: r.icaoAirline ?? '', atcAirline: r.atcAirline ?? '',
+    title: r.title ?? '', livery: r.livery ?? '', callsign: r.callsign ?? '', icaoType: r.icaoType ?? '', icaoAirline: r.icaoAirline ?? '', atcAirline: r.atcAirline ?? '',
     classCode: r.classCode ?? '', wtc: r.wtc ?? '', typerole: r.typerole ?? ROLE.SingleProp, icaoAirlineGuessed: !!r.icaoAirlineGuessed,
   });
+
+  /** The airline of the request when it is certain: a known ICAO code that was given (not guessed from the title), or a callsign like UAE123. */
+  function verifiedAirlineOf(request) {
+    const given = request.icaoAirline.toUpperCase();
+    if (!request.icaoAirlineGuessed && airlines.isKnownCode(given)) return given;
+    const fromCallsign = CALLSIGN_WITH_AIRLINE.exec(request.callsign.trim().toUpperCase());
+    return fromCallsign && airlines.isKnownCode(fromCallsign[1]) ? fromCallsign[1] : '';
+  }
+
+  /** Not GA, rotorcraft, balloon, glider or motor glider: a fixed-wing type outside the light wake category (jets, turboprops and piston airliners alike). */
+  function isAirlinerKind(icaoType, wtc, specs, typerole) {
+    if (doc8643.isCollapsed(icaoType) || specs.rotor === true || NOT_AIRLINER_ROLES.has(typerole)) return false;
+    const wake = wtc || doc8643.get(icaoType)?.wtc || '';
+    return wake ? wake !== LIGHT_WAKE : (specs.mtowKg ?? 0) >= AIRLINER_MIN_MTOW_KG;
+  }
 
   function match(models, requestIn) {
     const original = normalize(requestIn);
@@ -524,6 +523,8 @@ export function createMatcher({ reference, doc8643, related, airlines }) {
     const remoteTokens = folded ? titleTokens(request.title) : null;
     const cacheKey = m => `${m.icaoType}\u0001${m.classCode}\u0001${m.typerole}\u0001${m.icaoType.length === 0 || reference.rowCount(m.icaoType) > 1 ? `${m.title} ${m.variation}` : ''}`;
     const ranked = [];
+    const airlinerRequest = isAirlinerKind(request.icaoType, remoteWtc, remote.specs, request.typerole);
+    const verifiedAirline = airlinerRequest ? verifiedAirlineOf(request) : '';
 
     for (const model of models) {
       const key = cacheKey(model);
@@ -533,22 +534,23 @@ export function createMatcher({ reference, doc8643, related, airlines }) {
       if (similarity.gated) continue;
       const familyBonus = sameManufacturerBonus(remote.specs, candidate.specs);
       const similarityPoints = roundEven(SIMILARITY_POINTS_MAX * similarity.score * similarity.confidence);
+      const nearPoints = nearIdenticalBonus(similarity);
 
       const identity = scoreCandidate(model, request, remoteClass, remoteWtc);
-      // a related type (same family in the family file) is a near-exact stand-in
-      if (identity.attrs.IcaoType === undefined && related.areRelated(request.icaoType, model.icaoType)) {
-        identity.score += RELATED_TYPE_POINTS; identity.attrs.IcaoType = RELATED_TYPE_POINTS; identity.contributions.push(`related ICAO type '${model.icaoType}' ~ '${request.icaoType}' (+${RELATED_TYPE_POINTS})`);
-      }
       titleInferredIdentity(identity, model, candidate, remoteType, folded, remoteClass, remoteWtc);
       if (remoteTokens) {
         const bonus = titleBonus(request.title, model.title);
         if (bonus > 0) { identity.score += bonus; identity.contributions.push(`shared title words with the remote aircraft (+${bonus})`); }
       }
       const genericFallback = folded && foldedIdentity(identity, model, candidate, remoteType, request, remote);
-      ranked.push({ model, total: identity.score + similarityPoints + familyBonus, baseline: identity.score, attrs: identity.attrs, contributions: identity.contributions,
-        similarity, similarityPoints, familyBonus, genericFallback, effectiveIcao: candidate.effectiveIcao });
+      const liveryFirst = verifiedAirline.length > 0 && model.icaoAirline.toUpperCase() === verifiedAirline && similarity.confidence > 0 && similarity.score >= NEAR_FROM
+        && isAirlinerKind(model.icaoType, model.wtc, candidate.specs, model.typerole);
+      if (nearPoints > 0) identity.contributions.push(`near identical to the remote aircraft (+${nearPoints})`);
+      if (liveryFirst) identity.contributions.push(`airliner of the requested airline '${verifiedAirline}', at least ${Math.round(NEAR_FROM * 100)} % alike: the livery comes before the exact type`);
+      ranked.push({ model, total: identity.score + similarityPoints + nearPoints + familyBonus, baseline: identity.score, attrs: identity.attrs, contributions: identity.contributions,
+        similarity, similarityPoints, nearPoints, liveryFirst, familyBonus, genericFallback, effectiveIcao: candidate.effectiveIcao });
     }
-    ranked.sort((a, b) => (b.total - a.total) || (b.similarity.score - a.similarity.score) || ordinal(a.model.title, b.model.title) || ordinal(a.model.variation, b.model.variation));
+    ranked.sort((a, b) => (Number(b.liveryFirst) - Number(a.liveryFirst)) || (b.total - a.total) || (b.similarity.score - a.similarity.score) || ordinal(a.model.title, b.model.title) || ordinal(a.model.variation, b.model.variation));
 
     const acceptable = c => c.total >= MIN_MATCH_SCORE && (c.similarity.confidence <= 0 || c.similarity.score >= MIN_SIMILARITY || c.attrs.IcaoType !== undefined);
     const winner = ranked.find(c => acceptable(c) && !c.genericFallback) ?? ranked.find(acceptable);
@@ -587,7 +589,7 @@ export function createMatcher({ reference, doc8643, related, airlines }) {
     let points, genericFallback = false;
     if (remoteNamed && modelNamed && candidate.matchedHint.toLowerCase() === remote.matchedHint.toLowerCase()) points = SAME_HINT_POINTS;
     else if (sameRow) points = 200;
-    else { points = RELATED_TYPE_POINTS; genericFallback = remoteNamed && !modelNamed; }
+    else { points = OTHER_KIND_POINTS; genericFallback = remoteNamed && !modelNamed; }
     const before = identity.attrs.IcaoType ?? 0;
     identity.score += points - before;
     identity.attrs.IcaoType = points;

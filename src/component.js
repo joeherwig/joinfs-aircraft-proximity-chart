@@ -5,9 +5,9 @@ import { drag as d3drag } from 'd3-drag';
 import { scaleOrdinal, scaleLinear } from 'd3-scale';
 import { schemeTableau10 } from 'd3-scale-chromatic';
 import { extent, quantile } from 'd3-array';
-import { buildIndex, parseRelated, neighbourOf, MAX_POINTS } from './proximity.js';
+import { buildIndex, neighbourOf, MAX_POINTS } from './proximity.js';
 import { parseModels, groupModels, pickRow, titleFit, virtualAircraft, isLookupLine, resolveAirline, callsignScore, modelScore } from './models.js';
-import { createMatcher, makeReference, makeDoc8643, makeRelated, makeAirlines } from './joinfs-matcher.js';
+import { createMatcher, makeReference, makeDoc8643, makeAirlines } from './joinfs-matcher.js';
 import { COMPONENT, SCRIPT_URL, pickLanguage, loadLocale, makeTranslator } from './i18n.js';
 import css from './style.css';
 
@@ -57,7 +57,7 @@ function h(tag, attrs = {}, ...children) {
 }
 
 class ProximityChart extends HTMLElement {
-  static get observedAttributes() { return ['lang', 'src', 'related-src', 'focus', 'k', 'min-proximity', 'search', 'color-by', 'engine-type', 'engines', 'wing', 'gear', 'manufacturer', 'callsign', 'aircraft-title']; }
+  static get observedAttributes() { return ['lang', 'src', 'focus', 'k', 'min-proximity', 'search', 'color-by', 'engine-type', 'engines', 'wing', 'gear', 'manufacturer', 'callsign', 'aircraft-title']; }
 
   constructor() {
     super();
@@ -96,7 +96,7 @@ class ProximityChart extends HTMLElement {
   attributeChangedCallback(name, oldValue, value) {
     if (!this.built || oldValue === value) return;
     if (name === 'lang') this.#setLanguage().then(() => this.#renderAll());
-    else if (name === 'src' || name === 'related-src') this.#load();
+    else if (name === 'src') this.#load();
     else if (name === 'focus') this.#focusFromAttribute();
     else {
       this.#readStateAttributes();
@@ -147,7 +147,7 @@ class ProximityChart extends HTMLElement {
 
   /** Use another aircraft list (the data's, or the data's plus the model set's own types): new index and graph; the data's nodes keep their numbers. */
   #setAircraft(list) {
-    this.index = buildIndex(list, this.related);
+    this.index = buildIndex(list);
     this.#buildGraph();
     this.#rebuildGraph(true);
   }
@@ -330,7 +330,7 @@ class ProximityChart extends HTMLElement {
     await this.#setLanguage();
     this.#renderAll();
     const specUrl = new URL(this.getAttribute('src') || 'aircraft-specs.json', SCRIPT_URL).href;
-    const relatedUrl = new URL(this.getAttribute('related-src') || 'XPMP2_related.dat', SCRIPT_URL).href;
+    if (this.hasAttribute('related-src')) console.warn(`[${COMPONENT}] The attribute related-src is obsolete and ignored: aircraft families are no longer used, how alike two aircraft are decides.`);
     const doc8643Url = new URL(this.getAttribute('doc8643-src') || 'doc8643.json', SCRIPT_URL).href;
     const airlinesUrl = new URL(this.getAttribute('airlines-src') || 'airlines.json', SCRIPT_URL).href;
     const optionalJson = url => fetchOnce(url, r => r.json()).catch(err => {
@@ -338,12 +338,8 @@ class ProximityChart extends HTMLElement {
       return null;
     });
     try {
-      const [spec, relatedText, doc8643, airlines] = await Promise.all([
+      const [spec, doc8643, airlines] = await Promise.all([
         fetchOnce(specUrl, r => r.json()),
-        fetchOnce(relatedUrl, r => r.text()).catch(err => {
-          console.warn(`[${COMPONENT}] Could not load ${relatedUrl}: ${err.message ?? err}. Continuing without related types.`);
-          return '';
-        }),
         optionalJson(doc8643Url),
         optionalJson(airlinesUrl),
       ]);
@@ -351,10 +347,9 @@ class ProximityChart extends HTMLElement {
       const aircraft = spec.aircraft ?? spec;
       labelSharedDesignators(aircraft);
       this.baseAircraft = aircraft;
-      this.related = parseRelated(relatedText);
       // JoinFS' own matcher, ported (src/joinfs-matcher.js): decides which installed model is shown as the answer
-      this.joinfs = doc8643 && airlines ? createMatcher({ reference: makeReference(aircraft), doc8643: makeDoc8643(doc8643), related: makeRelated(relatedText), airlines: makeAirlines(airlines) }) : null;
-      this.index = buildIndex(aircraft, this.related);
+      this.joinfs = doc8643 && airlines ? createMatcher({ reference: makeReference(aircraft), doc8643: makeDoc8643(doc8643), airlines: makeAirlines(airlines) }) : null;
+      this.index = buildIndex(aircraft);
       this.loadState = 'ready';
       this.#buildGraph();
       this.#renderAll();
@@ -983,7 +978,7 @@ class ProximityChart extends HTMLElement {
           h('div', { class: 'bar', role: 'img', 'aria-label': `${t(`feature.${p.feature}`)}: ${Math.round((1 - p.distance) * 100)}%` },
             h('i', { style: `width:${(1 - p.distance) * 100}%` })))),
         nb.p.manufacturerBonus ? h('span', { class: 'chip' }, `+${nb.p.manufacturerBonus} ${t('detail.bonusManufacturer')}`) : null,
-        nb.p.relatedBonus ? h('span', { class: 'chip' }, `+${nb.p.relatedBonus} ${t('detail.bonusRelated')}`) : null,
+        nb.p.nearIdenticalBonus ? h('span', { class: 'chip' }, `+${nb.p.nearIdenticalBonus} ${t('detail.bonusNearIdentical')}`) : null,
         h('div', {}, `${t('detail.points', { n: nb.p.total })} / ${MAX_POINTS}`)));
     }
     return li;

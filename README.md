@@ -9,7 +9,7 @@ Each aircraft type is a node labelled with its ICAO type designator. Each node i
 Put these files in one folder on your web server:
 
 - `joinfs-proximity-chart.js` (the component, d3 is bundled in)
-- `aircraft-specs.json`, `XPMP2_related.dat` (data, fetched when the element is connected)
+- `aircraft-specs.json`, `doc8643.json`, `airlines.json` (data, fetched when the element is connected)
 - `joinfs-proximity-chart-<locale>.json` (translations, fetched on demand)
 
 ```html
@@ -23,7 +23,6 @@ Data and language files are resolved relative to the script's own URL, so the pa
 |---|---|
 | `lang` | Language (observed; can change at runtime). Default: browser languages, else `en`. |
 | `src` | Aircraft data, default `aircraft-specs.json` (relative to the script). |
-| `related-src` | Related-type families, default `XPMP2_related.dat`. |
 | `focus` | ICAO type (or alias) to select, e.g. `focus="A320"` (also `element.focus('A320')`). |
 | `search` | Search text (ICAO type, alias, name, manufacturer, title hint). Without `focus`, the best match is selected, as if the text had been typed into the form and confirmed. |
 | `theme` | `light` or `dark` forces a theme; default follows the system and changes live with it. The demo page has no language or theme switch: both are auto-detected (`?lang=` and `?theme=` still override them). |
@@ -38,7 +37,7 @@ Data and language files are resolved relative to the script's own URL, so the pa
 
 "Load installed models…" takes a JoinFS models list (`models - <simulator>.txt`, e.g. `%LocalAppData%JoinFS-FS2024models - Microsoft Flight Simulator 2024.txt`). It is read in the browser and never uploaded. Each model is assigned to the aircraft whose ICAO type or alias equals the model's ICAO type (field 9; models without one are ignored); the component can also be given the text with `element.loadModels(text, name)`.
 
-- **The answer is JoinFS' answer.** With a models list loaded, the aircraft that is marked (check, first livery, "most similar" list) is the installed model JoinFS' own matcher would inject for the selected type, the callsign's airline and the title: the same scoring (exact type, airline, class code, wake, related types, size and speed similarity, plausibility gate), written down once more in `src/joinfs-matcher.js`. So the right airline on a look-alike beats the exact type of another airline exactly as in JoinFS (a `B739` with the callsign `RYR` shows the Ryanair `B738`), and nothing beats an exact type when the airline is not installed in a family JoinFS knows. `doc8643.json` (class code and wake per designator) and `airlines.json` (ICAO airlines) are generated from the JoinFS resources by `npm run sync-data`; without them the map falls back to type proximity (attributes `doc8643-src`, `airlines-src` name other locations). The test `test/joinfs-parity.test.mjs` runs 281 scenarios that JoinFS' own tests wrote to `test/fixtures/MatchScenarios.json` (winner, total points and match type must be identical); after a change of JoinFS' matching, regenerate them there (`JOINFS_UPDATE_GOLDEN=1`) and run `npm run sync-data`.
+- **The answer is JoinFS' answer.** With a models list loaded, the aircraft that is marked (check, first livery, "most similar" list) is the installed model JoinFS' own matcher would inject for the selected type, the callsign's airline and the title: the same scoring (exact type, airline, class code, wake, size and speed similarity, near-identical bonus, plausibility gate), written down once more in `src/joinfs-matcher.js`. So the right airline on a look-alike beats the exact type of another airline exactly as in JoinFS (a `B739` with the callsign `RYR` shows the Ryanair `B738`), and nothing beats an exact type when the airline is not installed in a family JoinFS knows. `doc8643.json` (class code and wake per designator) and `airlines.json` (ICAO airlines) are generated from the JoinFS resources by `npm run sync-data`; without them the map falls back to type proximity (attributes `doc8643-src`, `airlines-src` name other locations). The test `test/joinfs-parity.test.mjs` runs 281 scenarios that JoinFS' own tests wrote to `test/fixtures/MatchScenarios.json` (winner, total points and match type must be identical); after a change of JoinFS' matching, regenerate them there (`JOINFS_UPDATE_GOLDEN=1`) and run `npm run sync-data`.
 - **Collapsed designators** (`GLID`, `GLIM`, `UHEL`, `GYRO`, `BALL` ...): ICAO uses one code for many aircraft, so the data holds generic class lines for them (manufacturer `-`, e.g. "Glider, 15 m class"). They only supply parameters (size, weight, speed, wing, gear) for titles that list them as a hint; they are never an aircraft to inject and are dimmed as not installed, except as the place of the injected model. With a title the map shows the model JoinFS would inject: same title hint first, then the same kind of aircraft, then the closest parameters, the generic model only as a last resort. The same scenarios run against JoinFS' own matcher (`test/fixtures/folded-scenarios.json`).
 - **The model set's own types:** while a models list is loaded, tags it uses that the data does not know (e.g. `SZD30`, `AS7`, `LS4`, `JS3-15`) get a node of their own, with the parameters of the class line that lists their title hint and name/manufacturer from the list. The data file only carries real type designators; the nodes disappear with "Remove model list".
 - Aircraft without an installed model stay visible, in the chart and in the "most similar aircraft" list, but dimmed. Installed ones carry a green ✔ in the list; the selected installed aircraft gets one in the chart and the side panel.
@@ -58,15 +57,19 @@ English is built into the script. `de, es, fr, it, ko, nl, pt, uk` are `joinfs-p
 
 To add a translation: copy one JSON file, rename it to the new locale, translate the values (keep the keys and `{placeholders}`), add the locale to `LOCALES` in `src/i18n.js`, run `npm run check-locales` and `npm run build`.
 
+## Installed model: livery before exact type (airliners)
+
+For an airliner request, an installed model of the requested airline that is at least 80 % alike (physical score) ranks above every model without that airline, even above the exact ICAO type. The airline must be certain: a known ICAO airline code that was given, or a callsign like `UAE123` (a registration such as `N748UA` never counts, and neither does an airline only guessed from the title). Helicopters, balloons, gliders, motor gliders and light general aviation (wake category L) keep "exact type first". Both the requested and the installed type must be airliners.
+
 ## Proximity
 
 Per pair of types (`src/proximity.js`):
 
 - **Physical similarity**: weight (3.0), wing span (2.0), length (1.5), cruise speed (2.0), engine count (2.0), engine type (2.0), wing position (1.0), landing gear (1.5). The numeric features use a log ratio that saturates at a factor of 4 (weight) or 2 (the others). Points = round(100 x score x confidence).
 - **Same manufacturer** +40, if both are rotorcraft or both fixed wing and the weights are within a factor of 2.5.
-- **Related type** +120 for types in the same family of `XPMP2_related.dat`.
+- **Almost identical** up to +60 (`NEAR_MAX`): rises smoothly from 0 at a physical score of 0.8 to the maximum at identical specs, scaled by the confidence, and only when at least 75 % of the weighted features are known. There is no list of aircraft families any more: how alike two aircraft are decides.
 - **Plausibility gate**: rotorcraft vs fixed wing, or weights differing by more than a factor of 8, are never neighbours.
-- A pair is accepted when the physical score is at least 0.5, or the types are related. The percentage shown is points / 260.
+- A pair is accepted when the physical score is at least 0.5. The percentage shown is points / 200.
 
 Not included: the identity points (class code, wake category, airline) that JoinFS adds when matching an installed model, because the spec file has no such data.
 
@@ -77,5 +80,6 @@ npm install
 npm run build          # bundle src/ into joinfs-proximity-chart.js
 npm test               # algorithm tests
 npm run check-locales  # key/placeholder parity of all language files
-npm run sync-data      # copy aircraft-specs.json and XPMP2_related.dat from the JoinFS repository
+npm run sync-data      # copy aircraft-specs.json and derive doc8643.json / airlines.json from the JoinFS repository
+node scripts/golden-diff.mjs   # list the golden scenarios whose winner changed against JoinFS today (--write updates test/fixtures/golden-changes.json)
 ```

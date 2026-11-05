@@ -39,7 +39,7 @@
   "detail.proximity": "근접도: {n}%",
   "detail.points": "점수: {n}",
   "detail.bonusManufacturer": "같은 제조사, 비슷한 크기",
-  "detail.bonusRelated": "관련 기종 (외형이 비슷함)",
+  "detail.bonusNearIdentical": "거의 동일 (제원이 매우 비슷함)",
   "feature.mtow": "중량",
   "feature.span": "날개 길이",
   "feature.length": "길이",

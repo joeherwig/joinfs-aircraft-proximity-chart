@@ -1,6 +1,6 @@
 // Copies and derives the data files from the JoinFS repository next to the component.
 // Usage: npm run sync-data [-- <path to JoinFS/JoinFS/Resources>]
-//   aircraft-specs.json, XPMP2_related.dat   copied
+//   aircraft-specs.json                      copied
 //   doc8643.json                             designator -> [class code, wake, majority manufacturer, collapsed] from XPMP2_Doc8643.dat
 //   airlines.json                            [icao, iata, name] rows from ICAO_Airlines.dat
 //   test/fixtures/MatchScenarios*.json       JoinFS' golden answers (JoinFS.Tests), when that folder is next to the Resources folder
@@ -12,7 +12,7 @@ const here = dirname(fileURLToPath(import.meta.url));
 const root = resolve(here, '..');
 const src = resolve(process.argv[2] ?? resolve(root, '../JoinFS/JoinFS/Resources'));
 
-for (const [from, to] of [['aircraft-specs.json', 'aircraft-specs.json'], ['XPMP2_related.dat', 'XPMP2_related.dat']]) {
+for (const [from, to] of [['aircraft-specs.json', 'aircraft-specs.json']]) {
   copyFileSync(resolve(src, from), resolve(root, to));
   console.log(`copied ${from}`);
 }

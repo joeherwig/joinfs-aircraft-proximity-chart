@@ -39,7 +39,7 @@
   "detail.proximity": "Nabijheid: {n}%",
   "detail.points": "Punten: {n}",
   "detail.bonusManufacturer": "Zelfde fabrikant en vergelijkbare grootte",
-  "detail.bonusRelated": "Verwant type (visueel vergelijkbaar)",
+  "detail.bonusNearIdentical": "Bijna identiek (zeer vergelijkbare gegevens)",
   "feature.mtow": "Gewicht",
   "feature.span": "Spanwijdte",
   "feature.length": "Lengte",

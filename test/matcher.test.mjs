@@ -4,12 +4,12 @@ import test from 'node:test';
 import assert from 'node:assert/strict';
 import { readFileSync } from 'node:fs';
 import { parseModels, groupModels, virtualAircraft, isLookupLine } from '../src/models.js';
-import { createMatcher, makeReference, makeDoc8643, makeRelated, makeAirlines } from '../src/joinfs-matcher.js';
+import { createMatcher, makeReference, makeDoc8643, makeAirlines } from '../src/joinfs-matcher.js';
 
 const read = name => readFileSync(new URL(`../${name}`, import.meta.url), 'utf8');
 const aircraft = JSON.parse(read('aircraft-specs.json')).aircraft;
 const doc8643Table = JSON.parse(read('doc8643.json'));
-const matcher = createMatcher({ reference: makeReference(aircraft), doc8643: makeDoc8643(doc8643Table), related: makeRelated(read('XPMP2_related.dat')), airlines: makeAirlines(JSON.parse(read('airlines.json'))) });
+const matcher = createMatcher({ reference: makeReference(aircraft), doc8643: makeDoc8643(doc8643Table), airlines: makeAirlines(JSON.parse(read('airlines.json'))) });
 const fixture = JSON.parse(read('test/fixtures/folded-scenarios.json'));
 
 // models as a JoinFS list line (the role text "Segler" is what the JoinFS tests give the gliders)

@@ -1,7 +1,10 @@
 // Type-to-type proximity, ported from JoinFS docs/model-matching.md (sections 5-8).
 // Pure functions, no DOM: usable in the browser bundle and in Node tests.
 
-export const MAX_POINTS = 100 + 40 + 120; // physical similarity + same manufacturer + related type
+export const NEAR_FROM = 0.8;  // below this similarity two aircraft are not 'near identical'
+export const NEAR_MAX = 60;    // the bonus at identical specs
+export const NEAR_MIN_CONFIDENCE = 0.75; // 'identical' needs most of the comparison to be known: two aircraft that only share an engine count are not
+export const MAX_POINTS = 100 + 40 + NEAR_MAX; // physical similarity + same manufacturer + near identical
 export const SIMILARITY_ACCEPT = 0.5;
 
 // feature: weight, saturation factor of the log ratio (numeric features)
@@ -115,36 +118,30 @@ export function sameMakerSimilarSize(a, b) {
   return false;
 }
 
-/** Parse XPMP2_related.dat: ';' comments, one group of whitespace-separated codes per line. */
-export function parseRelated(text) {
-  const family = new Map(); // icao -> group index; like JoinFS (RelatedTypes) the first group of a code wins and a group needs two codes
-  const groups = [];
-  for (const raw of text.split(/\r?\n/)) {
-    const line = raw.split(';')[0].trim();
-    if (!line) continue;
-    const codes = line.split(/\s+/).map(c => c.toUpperCase());
-    if (codes.length < 2) continue;
-    codes.forEach(c => { if (!family.has(c)) family.set(c, groups.length); });
-    groups.push(codes);
-  }
-  return { family, groups };
+/**
+ * Bonus for aircraft that are almost the same (replaces the family list): grows smoothly from 0 at NEAR_FROM to NEAR_MAX at identical specs,
+ * scaled by how much of the comparison is known.
+ */
+export function nearIdenticalBonus({ score, confidence }) {
+  if (!(score > NEAR_FROM) || !(confidence >= NEAR_MIN_CONFIDENCE)) return 0;
+  const t = Math.min(1, (score - NEAR_FROM) / (1 - NEAR_FROM));
+  return Math.round(NEAR_MAX * t * t * (3 - 2 * t) * confidence);
 }
 
 /**
  * Proximity of two aircraft types.
  * @returns {{total:number, percent:number, physical:{score,confidence,points,parts}, manufacturerBonus:number,
- *            relatedBonus:number, excluded:boolean, accepted:boolean}}
+ *            nearIdenticalBonus:number, excluded:boolean, accepted:boolean}}
  */
-export function proximity(a, b, related = null) {
+export function proximity(a, b) {
   const physical = physicalSimilarity(a, b);
   physical.points = Math.round(100 * physical.score * physical.confidence);
   const excluded = isImplausible(a, b);
-  const isRelated = !!related && a.icao !== b.icao && related.family.has(a.icao) && related.family.get(a.icao) === related.family.get(b.icao);
   const manufacturerBonus = !excluded && sameMakerSimilarSize(a, b) ? 40 : 0;
-  const relatedBonus = !excluded && isRelated ? 120 : 0;
-  const total = physical.points + manufacturerBonus + relatedBonus;
-  const accepted = !excluded && (physical.score >= SIMILARITY_ACCEPT || isRelated);
-  return { total, percent: total / MAX_POINTS, physical, manufacturerBonus, relatedBonus, excluded, accepted };
+  const near = excluded ? 0 : nearIdenticalBonus(physical);
+  const total = physical.points + manufacturerBonus + near;
+  const accepted = !excluded && physical.score >= SIMILARITY_ACCEPT;
+  return { total, percent: total / MAX_POINTS, physical, manufacturerBonus, nearIdenticalBonus: near, excluded, accepted };
 }
 
 /** Section 8 ordering: higher combined score, higher physical score, then ICAO. */
@@ -153,12 +150,12 @@ function compareNeighbours(x, y) {
 }
 
 /** Builds the pairwise proximity table for all aircraft and a ranked, accepted neighbour list per aircraft. */
-export function buildIndex(aircraft, related = null) {
+export function buildIndex(aircraft) {
   const n = aircraft.length;
   const matrix = Array.from({ length: n }, () => new Array(n));
   for (let i = 0; i < n; i++) {
     for (let j = i + 1; j < n; j++) {
-      const p = proximity(aircraft[i], aircraft[j], related);
+      const p = proximity(aircraft[i], aircraft[j]);
       matrix[i][j] = p;
       matrix[j][i] = p; // symmetric: the breakdown has no direction
     }

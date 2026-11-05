@@ -39,7 +39,7 @@
   "detail.proximity": "Ähnlichkeit: {n} %",
   "detail.points": "Punkte: {n}",
   "detail.bonusManufacturer": "Gleicher Hersteller und ähnliche Größe",
-  "detail.bonusRelated": "Verwandter Typ (optisch ähnlich)",
+  "detail.bonusNearIdentical": "Nahezu identisch (sehr ähnliche Daten)",
   "feature.mtow": "Gewicht",
   "feature.span": "Spannweite",
   "feature.length": "Länge",

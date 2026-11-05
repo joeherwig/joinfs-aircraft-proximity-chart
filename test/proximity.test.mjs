@@ -1,10 +1,9 @@
 import test from 'node:test';
 import assert from 'node:assert/strict';
 import { readFileSync } from 'node:fs';
-import { proximity, parseRelated, buildIndex, physicalSimilarity, isImplausible, MAX_POINTS } from '../src/proximity.js';
+import { proximity, buildIndex, physicalSimilarity, isImplausible, MAX_POINTS } from '../src/proximity.js';
 
 const data = JSON.parse(readFileSync(new URL('../aircraft-specs.json', import.meta.url), 'utf8')).aircraft;
-const related = parseRelated(readFileSync(new URL('../XPMP2_related.dat', import.meta.url), 'utf8'));
 const by = Object.fromEntries(data.slice().reverse().map(a => [a.icao, a])); // the first row of a designator is its default
 
 const mk = (o = {}) => ({ icao: 'T', manufacturer: 'X', wing: 'low', spanM: 10, lengthM: 8, mtowKg: 1000, engines: 1, engineType: 'piston', cruiseKt: 120, gear: 'tricycle', ...o });
@@ -57,38 +56,38 @@ test('gate: rotor vs fixed wing and weight ratio above 8', () => {
   assert.ok(isImplausible(by.R44, by.C172));
   assert.ok(isImplausible(by.C172, by.B744));
   assert.ok(!isImplausible(by.C172, by.P28A));
-  const p = proximity(by.R44, by.C172, related);
-  assert.ok(p.excluded && !p.accepted && p.manufacturerBonus === 0 && p.relatedBonus === 0);
+  const p = proximity(by.R44, by.C172);
+  assert.ok(p.excluded && !p.accepted && p.manufacturerBonus === 0 && p.nearIdenticalBonus === 0);
 });
 
 test('same-manufacturer bonus needs similar size', () => {
-  assert.equal(proximity(by.R22, by.R44, related).manufacturerBonus, 40);
-  assert.equal(proximity(mk({ mtowKg: 1000 }), mk({ mtowKg: 3000 }), related).manufacturerBonus, 0); // factor 3 > 2.5
-  assert.equal(proximity(mk({ manufacturer: '-' }), mk({ manufacturer: '-' }), related).manufacturerBonus, 0);
+  assert.equal(proximity(by.R22, by.R44).manufacturerBonus, 40);
+  assert.equal(proximity(mk({ mtowKg: 1000 }), mk({ mtowKg: 3000 })).manufacturerBonus, 0); // factor 3 > 2.5
+  assert.equal(proximity(mk({ manufacturer: '-' }), mk({ manufacturer: '-' })).manufacturerBonus, 0);
 });
 
-test('related family bonus and acceptance', () => {
-  const p = proximity(by.A320, by.A20N, related);
-  assert.equal(p.relatedBonus, 120);
+test('near identical bonus and acceptance (no family list)', () => {
+  const p = proximity(by.A320, by.A20N);
+  assert.ok(p.nearIdenticalBonus > 0 && p.nearIdenticalBonus <= 60);
   assert.ok(p.accepted);
-  assert.equal(proximity(by.A320, by.A320, related).relatedBonus, 0);
   assert.ok(p.total <= MAX_POINTS);
+  assert.equal(proximity(by.C172, by.B744).nearIdenticalBonus, 0);
 });
 
 test('proximity is symmetric', () => {
-  const ab = proximity(by.C172, by.P28A, related);
-  const ba = proximity(by.P28A, by.C172, related);
+  const ab = proximity(by.C172, by.P28A);
+  const ba = proximity(by.P28A, by.C172);
   assert.equal(ab.total, ba.total);
 });
 
 test('plausible neighbours for well known types', () => {
-  const idx = buildIndex(data, related);
+  const idx = buildIndex(data);
   const top = icao => idx.neighbours[data.findIndex(a => a.icao === icao)].slice(0, 6).map(n => n.icao);
   console.log('C172', top('C172').join(' '));
   console.log('A320', top('A320').join(' '));
   console.log('B744', top('B744').join(' '));
   console.log('R44 ', top('R44').join(' '));
-  assert.ok(top('A320').includes('A20N') && top('A320').includes('A321'));
+  assert.ok(top('A320').includes('A20N') && top('A320').includes('A319'));
   assert.ok(top('B744').includes('B748'));
   assert.ok(!top('R44').some(i => !by[i].rotor));
   assert.ok(top('C172').every(i => by[i].mtowKg < 5000));
