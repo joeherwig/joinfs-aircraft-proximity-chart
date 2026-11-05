@@ -534,7 +534,7 @@ export function createMatcher({ reference, doc8643, airlines }) {
       if (similarity.gated) continue;
       const familyBonus = sameManufacturerBonus(remote.specs, candidate.specs);
       const similarityPoints = roundEven(SIMILARITY_POINTS_MAX * similarity.score * similarity.confidence);
-      const nearPoints = nearIdenticalBonus(similarity);
+      const nearPoints = folded ? 0 : nearIdenticalBonus(similarity); // for GLID, GLIM ... the title decides what the tag cannot
 
       const identity = scoreCandidate(model, request, remoteClass, remoteWtc);
       titleInferredIdentity(identity, model, candidate, remoteType, folded, remoteClass, remoteWtc);
@@ -578,12 +578,20 @@ export function createMatcher({ reference, doc8643, airlines }) {
     }
   }
 
+  /** CombinedMatcher.AddStandInPoints: a specific type that can stand in for the folded designator (an LS8 for a GLID) is "another kind of aircraft". */
+  function standInPoints(identity, model, request) {
+    if (identity.attrs.IcaoType !== undefined || !reference.isStandInFor(request.icaoType, model.icaoType)) return false;
+    identity.score += OTHER_KIND_POINTS; identity.attrs.IcaoType = OTHER_KIND_POINTS;
+    identity.contributions.push(`'${request.icaoType}' covers several aircraft: '${model.icaoType}' is a specific type that can stand in for it (+${OTHER_KIND_POINTS})`);
+    return false;
+  }
+
   /** CombinedMatcher.ApplyFoldedIdentity: for GLID, GLIM, UHEL ... the title decides what the tag cannot. Returns true for the generic last resort. */
   function foldedIdentity(identity, model, candidate, remoteType, request, remote) {
     const exactTag = model.icaoType.toLowerCase() === request.icaoType.toLowerCase();
     const tagLeavesTypeToTitle = !(model.icaoType.length > 0 && doc8643.isRecognized(model.icaoType))
       && (candidate.effectiveIcao.toLowerCase() === remoteType.toLowerCase() || reference.isStandInFor(request.icaoType, candidate.effectiveIcao));
-    if (!exactTag && !tagLeavesTypeToTitle) return false;
+    if (!exactTag && !tagLeavesTypeToTitle) return standInPoints(identity, model, request);
     const remoteNamed = remote.matchedHint.length > 0, modelNamed = candidate.matchedHint.length > 0;
     const sameRow = candidate.specs.name === remote.specs.name || reference.isMemberOfRow(candidate.effectiveIcao, remote.specs.name, request.icaoType);
     let points, genericFallback = false;

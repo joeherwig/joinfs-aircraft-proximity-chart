@@ -81,5 +81,4 @@ npm run build          # bundle src/ into joinfs-proximity-chart.js
 npm test               # algorithm tests
 npm run check-locales  # key/placeholder parity of all language files
 npm run sync-data      # copy aircraft-specs.json and derive doc8643.json / airlines.json from the JoinFS repository
-node scripts/golden-diff.mjs   # list the golden scenarios whose winner changed against JoinFS today (--write updates test/fixtures/golden-changes.json)
 ```
