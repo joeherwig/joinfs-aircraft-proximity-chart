@@ -980,7 +980,7 @@ class ProximityChart extends HTMLElement {
     const parts = [
       ...identityParts(row).map(({ reason, points }) => [points, t(`detail.score${reason}`)]), [row.similarity, t('detail.scoreSimilarity')], [row.near, t('detail.bonusNearIdentical')],
       [row.manufacturer, t('detail.bonusManufacturer')], [row.livery, t('detail.scoreLivery')],
-    ].filter(([points]) => points > 0);
+    ].filter(([points]) => points > 0).sort((a, b) => b[0] - a[0]); // the biggest contribution first (a stable sort keeps the reading order on a tie)
     return h('div', { class: 'score' },
       h('div', { class: 'total' }, t('detail.joinfsScore', { n: row.score, max }), h('b', {}, ` · ${pct}%`)),
       h('ul', {}, parts.map(([points, label]) => h('li', {}, h('b', {}, `+${points}`), ` ${label}`))));
