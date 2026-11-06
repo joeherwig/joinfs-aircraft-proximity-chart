@@ -203,3 +203,4 @@ button:focus-visible, input:focus-visible, select:focus-visible { outline: 2px s
 .score ul { list-style: none; margin: 0; padding: 0; }
 .score li { border: 0; padding: 1px 0; }
 .score li b { display: inline-block; min-width: 3.2em; text-align: right; font-variant-numeric: tabular-nums; color: var(--accent); }
+.breakdown .f.muted { color: var(--muted); }

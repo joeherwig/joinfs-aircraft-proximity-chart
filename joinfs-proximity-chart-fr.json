@@ -38,6 +38,7 @@
   "detail.why": "Pourquoi est-il proche ?",
   "detail.proximity": "Correspondance : {n} %",
   "detail.points": "Points : {n}",
+  "detail.notCompared": "non comparé",
   "detail.joinfsScore": "Points JoinFS : {n} sur {max}",
   "detail.scoreIcaoType": "Même type d’aéronef",
   "detail.scoreIcaoAirline": "Même compagnie",

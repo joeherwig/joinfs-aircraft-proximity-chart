@@ -38,6 +38,7 @@
   "detail.why": "Porque é semelhante?",
   "detail.proximity": "Correspondência: {n}%",
   "detail.points": "Pontos: {n}",
+  "detail.notCompared": "não comparado",
   "detail.joinfsScore": "Pontos do JoinFS: {n} de {max}",
   "detail.scoreIcaoType": "Mesmo tipo de aeronave",
   "detail.scoreIcaoAirline": "Mesma companhia",

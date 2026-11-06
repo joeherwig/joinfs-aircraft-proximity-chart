@@ -17,6 +17,8 @@ const ENGINE_TYPE_ORDER = ['piston', 'turboprop', 'jet', 'turboshaft', 'electric
 const WING_ORDER = ['low', 'mid', 'high', 'biplane', 'rotor'];
 const COLOR_BY = ['engineType', 'manufacturer', 'wing', 'gear'];
 const FOCUS_NEIGHBOURS = 10;
+/** The physical features of the details, always in this order; one that is unknown for either aircraft is shown as not compared. */
+const FEATURE_ORDER = ['mtow', 'span', 'length', 'cruise', 'engineCount', 'engineType', 'wing', 'gear'];
 const FILTER_ATTRIBUTES = [['engine-type', 'engineType'], ['engines', 'engines'], ['wing', 'wing'], ['gear', 'gear'], ['manufacturer', 'manufacturer']];
 const LABEL_ZOOM = 2.2;
 const OTHER = '\u0000other';
@@ -1005,9 +1007,13 @@ class ProximityChart extends HTMLElement {
     if (open && this.#isAvail(nb.index)) li.append(this.#liveryList(nb.index));
     if (open) {
       li.append(h('div', { class: 'breakdown' },
-        nb.p.physical.parts.map(p => h('div', { class: 'f' }, t(`feature.${p.feature}`),
-          h('div', { class: 'bar', role: 'img', 'aria-label': `${t(`feature.${p.feature}`)}: ${Math.round((1 - p.distance) * 100)}%` },
-            h('i', { style: `width:${(1 - p.distance) * 100}%` })))),
+        FEATURE_ORDER.map(feature => {
+          const p = nb.p.physical.parts.find(x => x.feature === feature);
+          return p
+            ? h('div', { class: 'f' }, t(`feature.${feature}`),
+              h('div', { class: 'bar', role: 'img', 'aria-label': `${t(`feature.${feature}`)}: ${Math.round((1 - p.distance) * 100)}%` }, h('i', { style: `width:${(1 - p.distance) * 100}%` })))
+            : h('div', { class: 'f muted' }, t(`feature.${feature}`), h('span', {}, t('detail.notCompared')));
+        }),
         this.#scoreTable(row, nb.max, pct)));
     }
     return li;

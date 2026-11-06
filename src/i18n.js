@@ -75,6 +75,7 @@ export const EN = {
   'detail.rank': 'Preferred position: {n}',
   'detail.proximity': 'Match score: {n}%',
   'detail.points': 'Points: {n}',
+  'detail.notCompared': 'not compared',
   'detail.joinfsScore': 'JoinFS score: {n} of {max}',
   'detail.scoreIcaoType': 'Same aircraft type',
   'detail.scoreIcaoAirline': 'Same airline',

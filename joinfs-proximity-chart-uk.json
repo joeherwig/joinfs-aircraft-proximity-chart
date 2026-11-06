@@ -38,6 +38,7 @@
   "detail.why": "Чому він схожий?",
   "detail.proximity": "Відповідність: {n}%",
   "detail.points": "Бали: {n}",
+  "detail.notCompared": "не порівнювано",
   "detail.joinfsScore": "Бали JoinFS: {n} з {max}",
   "detail.scoreIcaoType": "Той самий тип літака",
   "detail.scoreIcaoAirline": "Та сама авіакомпанія",

@@ -38,6 +38,7 @@
   "detail.why": "왜 비슷한가요?",
   "detail.proximity": "일치도: {n}%",
   "detail.points": "점수: {n}",
+  "detail.notCompared": "비교 안 함",
   "detail.joinfsScore": "JoinFS 점수: {n} / {max}",
   "detail.scoreIcaoType": "같은 기종",
   "detail.scoreIcaoAirline": "같은 항공사",

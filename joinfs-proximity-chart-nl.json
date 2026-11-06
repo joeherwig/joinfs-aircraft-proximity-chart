@@ -38,6 +38,7 @@
   "detail.why": "Waarom lijkt het erop?",
   "detail.proximity": "Overeenkomst: {n}%",
   "detail.points": "Punten: {n}",
+  "detail.notCompared": "niet vergeleken",
   "detail.joinfsScore": "JoinFS-punten: {n} van {max}",
   "detail.scoreIcaoType": "Hetzelfde vliegtuigtype",
   "detail.scoreIcaoAirline": "Dezelfde maatschappij",
