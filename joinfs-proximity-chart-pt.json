@@ -11,7 +11,7 @@
   "toolbar.neighbours": "Vizinhos por aeronave: {n}",
   "toolbar.minProximity": "Proximidade mínima: {n}%",
   "toolbar.showUninstalled": "Listar também aeronaves não instaladas",
-  "toolbar.showUninstalledHint": "Só com uma lista de modelos carregada: carregue primeiro os seus modelos instalados",
+  "toolbar.showUninstalledHint": "Tem efeito quando uma lista de modelos é carregada",
   "toolbar.reset": "Repor",
   "filter.all": "Todos",
   "filter.engineType": "Tipo de motor",

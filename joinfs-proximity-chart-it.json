@@ -11,7 +11,7 @@
   "toolbar.neighbours": "Vicini per aeromobile: {n}",
   "toolbar.minProximity": "Prossimità minima: {n} %",
   "toolbar.showUninstalled": "Elenca anche gli aeromobili non installati",
-  "toolbar.showUninstalledHint": "Solo con un elenco di modelli caricato: carica prima i tuoi modelli installati",
+  "toolbar.showUninstalledHint": "Ha effetto quando è caricato un elenco di modelli",
   "toolbar.reset": "Ripristina",
   "filter.all": "Tutti",
   "filter.engineType": "Tipo di motore",

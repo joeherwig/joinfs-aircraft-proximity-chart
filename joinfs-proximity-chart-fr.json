@@ -11,7 +11,7 @@
   "toolbar.neighbours": "Voisins par aéronef : {n}",
   "toolbar.minProximity": "Proximité minimale : {n} %",
   "toolbar.showUninstalled": "Lister aussi les aéronefs non installés",
-  "toolbar.showUninstalledHint": "Uniquement avec une liste de modèles chargée : chargez d’abord vos modèles installés",
+  "toolbar.showUninstalledHint": "Prend effet une fois une liste de modèles chargée",
   "toolbar.reset": "Réinitialiser",
   "filter.all": "Tous",
   "filter.engineType": "Type de moteur",

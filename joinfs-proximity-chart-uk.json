@@ -11,7 +11,7 @@
   "toolbar.neighbours": "Сусідів на літак: {n}",
   "toolbar.minProximity": "Мінімальна близькість: {n}%",
   "toolbar.showUninstalled": "Показувати й не встановлені літаки",
-  "toolbar.showUninstalledHint": "Лише із завантаженим списком моделей: спершу завантажте встановлені моделі",
+  "toolbar.showUninstalledHint": "Діє після завантаження списку моделей",
   "toolbar.reset": "Скинути",
   "filter.all": "Усі",
   "filter.engineType": "Тип двигуна",

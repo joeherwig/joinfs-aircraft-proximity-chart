@@ -11,7 +11,7 @@
   "toolbar.neighbours": "Nachbarn pro Flugzeug: {n}",
   "toolbar.minProximity": "Mindestähnlichkeit: {n} %",
   "toolbar.showUninstalled": "Auch nicht installierte Flugzeuge auflisten",
-  "toolbar.showUninstalledHint": "Nur mit geladener Modellliste: lade zuerst deine installierten Modelle",
+  "toolbar.showUninstalledHint": "Wirkt erst, wenn eine Modellliste geladen ist",
   "toolbar.reset": "Zurücksetzen",
   "filter.all": "Alle",
   "filter.engineType": "Triebwerksart",
