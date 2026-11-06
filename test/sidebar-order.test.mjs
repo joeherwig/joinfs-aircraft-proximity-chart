@@ -93,3 +93,16 @@ test('the exact type is left out of the score and of its maximum: only different
   assert.equal(row.attrs.IcaoType, undefined);
   assert.equal(SCORE_MAX, 355);
 });
+
+test('a type that is not installed is placed by the score an installed model of it would earn, with the parts of that score', () => {
+  const order = [entry(1, 345, { identity: 155, similarity: 95 }), entry(3, 304, { identity: 155, similarity: 90 })];
+  const unranked = [{ index: 2, p: { total: 184, physical: { points: 90 }, nearIdenticalBonus: 20, manufacturerBonus: 40 } }];
+  const potential = [{ node: 2, total: 339, identity: 155, attrs: { ClassCode: 100, Wtc: 40, Typerole: 15 }, similarity: 90, near: 54, manufacturer: 40 }];
+  const rows = withScores(order, unranked, potential);
+  assert.deepEqual(rows.map(r => r.node), [1, 2, 3]);
+  assert.deepEqual(rows.map(r => r.score), [345, 339, 304]);
+  assert.equal(rows[1].identity, 155);
+  assert.equal(rows[1].unranked, true);
+  // without a potential score the data alone decides (the physical points), which puts it below
+  assert.deepEqual(withScores(order, unranked).map(r => r.node), [1, 3, 2]);
+});

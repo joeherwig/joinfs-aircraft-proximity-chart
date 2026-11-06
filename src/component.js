@@ -229,10 +229,14 @@ class ProximityChart extends HTMLElement {
    * The installed model JoinFS would inject for the selected aircraft as a remote (its designator, the Title box, the callsign's airline), with the node it is
    * shown on: { model, node, total, type }. Null without a models list, a selection or an acceptable model. Cached per remote and models list.
    */
+  /** The remote aircraft the matcher is asked about: the selected designator, the Title box and the callsign's airline. */
+  #remote() {
+    return { icaoType: this.#titleTag(this.s.focus), title: this.s.title.trim(), livery: '', ...this.#remoteAirline() };
+  }
+
   #injected() {
     if (!this.index || !this.joinfs || !this.prepared || this.s.focus === null) return null;
-    const tag = this.#titleTag(this.s.focus);
-    const remote = { icaoType: tag, title: this.s.title.trim(), livery: '', ...this.#remoteAirline() };
+    const remote = this.#remote();
     const key = JSON.stringify([remote, this.modelsVersion]);
     if (this.injectedKey !== key) {
       this.injectedKey = key;
@@ -254,6 +258,21 @@ class ProximityChart extends HTMLElement {
     const air = this.index.aircraft;
     const nodeOf = c => this.nodeOfModel.get(c.model.source) ?? (c.effectiveIcao ? air.findIndex(a => a.icao === c.effectiveIcao) : -1);
     return matcherOrder(found.ranking, found.model, nodeOf, FOCUS_NEIGHBOURS);
+  }
+
+  /**
+   * What an installed model of each of these types would score for the selected remote: the matcher run over one made-up model per type (its designator, class
+   * code and weight class from Doc8643, no livery). Types that are not installed get their place and their score, comparable with the installed ones, from this.
+   */
+  #potentialScores(nodes) {
+    if (!this.joinfs || !this.doc8643Rows || !nodes.length) return [];
+    const air = this.index.aircraft;
+    const made = nodes.map(node => {
+      const [classCode = '', wtc = ''] = this.doc8643Rows[air[node].icao] ?? [];
+      return { title: air[node].icao, tag: air[node].icao, airline: '', role: '', wtc, classCode, confirmed: true, node };
+    });
+    const found = this.joinfs.match(this.joinfs.prepareModels(made), this.#remote());
+    return found ? matcherOrder(found.ranking, found.model, c => c.model.source.node, nodes.length) : [];
   }
 
   #airlineNote() {
@@ -359,6 +378,7 @@ class ProximityChart extends HTMLElement {
       labelSharedDesignators(aircraft);
       this.baseAircraft = aircraft;
       // JoinFS' own matcher, ported (src/joinfs-matcher.js): decides which installed model is shown as the answer
+      this.doc8643Rows = doc8643 ?? null;
       this.joinfs = doc8643 && airlines ? createMatcher({ reference: makeReference(aircraft), doc8643: makeDoc8643(doc8643), airlines: makeAirlines(airlines) }) : null;
       this.index = buildIndex(aircraft);
       this.loadState = 'ready';
@@ -851,8 +871,8 @@ class ProximityChart extends HTMLElement {
    * Gives each neighbour its row: the points of every part, the score and the maximum it is measured against (see sidebar-order.js). `order` holds the matcher's
    * entries for `ranked` (same order); `rest` are neighbours without a matcher score.
    */
-  #scored(ranked, rest, max, order = []) {
-    const rows = withScores(order, rest);
+  #scored(ranked, rest, max, order = [], potential = []) {
+    const rows = withScores(order, rest, potential);
     const byNode = new Map(rows.map(r => [r.node, r]));
     if (!order.length) {
       // no matcher (no models list, or a neighbour list of an unselected aircraft): the data alone earns the points
@@ -873,7 +893,9 @@ class ProximityChart extends HTMLElement {
     if (injected?.scores.length) {
       const order = injected.scores.filter(r => r.node !== i).filter(r => neighbourOf(this.index, i, r.node));
       const rest = list.filter(n => !order.some(o => o.node === n.index) && this.#listed(n.index));
-      return this.#scored(order.map(o => ({ ...neighbourOf(this.index, i, o.node) })), rest, injected.max, order); // every matcher-ranked type, plus the types that are not installed when the option is on
+      // the types that are not installed, with the score an installed model of them would earn
+      const potential = this.s.showUninstalled ? this.#potentialScores(rest.filter(n => !this.#isAvail(n.index)).map(n => n.index)) : [];
+      return this.#scored(order.map(o => ({ ...neighbourOf(this.index, i, o.node) })), rest, injected.max, order, potential); // every matcher-ranked type, plus the types that are not installed when the option is on
     }
     if (!this.#isAvail(i) && !list.some(n => this.#isAvail(n.index))) {
       const at = all.findIndex(n => this.#isAvail(n.index));

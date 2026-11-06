@@ -50,8 +50,9 @@ export function matcherOrder(ranking, winner, nodeOf, limit) {
  * lift is listed as a part of its own. Types without a matcher score (not installed) are placed by the points their data alone earns, capped by the row above.
  * @param {ReturnType<typeof matcherOrder>} order
  * @param {{node:number, p:object}[]} unranked  neighbours that merely look similar, best first
+ * @param {ReturnType<typeof matcherOrder>} potential  for types that are not installed: the matcher's entries for made-up models of them (what an installed model would score)
  */
-export function withScores(order, unranked) {
+export function withScores(order, unranked, potential = []) {
   const rows = [];
   let ceiling = Infinity;
   const below = order.map((_, i) => Math.max(0, ...order.slice(i + 1).map(o => o.total)));
@@ -61,12 +62,19 @@ export function withScores(order, unranked) {
     ceiling = score;
     rows.push({ ...o, score, livery: Math.max(0, score - o.total) });
   });
-  // a type that merely looks similar takes the place its own score earns among the rows (never before the matcher's choice), capped by the row above it
-  for (const n of [...unranked].sort((x, y) => y.p.total - x.p.total)) {
-    const at = rows.findIndex((r, i) => i > 0 && r.score < n.p.total);
+  // a type that is not installed takes the place its own score earns among the rows (never before the matcher's choice), capped by the row above it
+  const potentialOf = new Map(potential.map(o => [o.node, o]));
+  const candidates = unranked.map(n => {
+    const own = potentialOf.get(n.index);
+    return own
+      ? { node: n.index, total: own.total, identity: own.identity, attrs: own.attrs, similarity: own.similarity, near: own.near, manufacturer: own.manufacturer }
+      : { node: n.index, total: n.p.total, identity: 0, attrs: {}, similarity: n.p.physical.points, near: n.p.nearIdenticalBonus, manufacturer: n.p.manufacturerBonus };
+  });
+  for (const c of candidates.sort((x, y) => y.total - x.total)) {
+    const at = rows.findIndex((r, i) => i > 0 && r.score < c.total);
     const place = at < 0 ? rows.length : at;
-    const score = Math.min(n.p.total, rows[place - 1]?.score ?? Infinity);
-    rows.splice(place, 0, { node: n.index, score, identity: 0, similarity: n.p.physical.points, near: n.p.nearIdenticalBonus, manufacturer: n.p.manufacturerBonus, livery: 0, liveryFirst: false, unranked: true });
+    const score = Math.min(c.total, rows[place - 1]?.score ?? Infinity);
+    rows.splice(place, 0, { ...c, score, livery: 0, liveryFirst: false, unranked: true });
   }
   return rows;
 }
