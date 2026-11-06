@@ -38,6 +38,7 @@
   "detail.why": "Pourquoi est-il proche ?",
   "detail.proximity": "Proximité : {n} %",
   "detail.points": "Points : {n}",
+  "detail.joinfsScore": "Points JoinFS : {n}",
   "detail.bonusManufacturer": "Même constructeur et taille similaire",
   "detail.bonusNearIdentical": "Quasi identique (caractéristiques très proches)",
   "feature.mtow": "Masse",

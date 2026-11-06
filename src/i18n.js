@@ -75,6 +75,7 @@ export const EN = {
   'detail.rank': 'Preferred position: {n}',
   'detail.proximity': 'Proximity: {n}%',
   'detail.points': 'Points: {n}',
+  'detail.joinfsScore': 'JoinFS score: {n}',
   'detail.bonusManufacturer': 'Same manufacturer and similar size',
   'detail.bonusNearIdentical': 'Almost identical (very similar specs)',
   'feature.mtow': 'Weight',

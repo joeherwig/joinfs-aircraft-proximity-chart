@@ -30,7 +30,7 @@ Data and language files are resolved relative to the script's own URL, so the pa
 | `engine-type`, `engines`, `wing`, `gear`, `manufacturer` | Filters; values as in the data (`piston`, `2`, `high`, `tricycle`, `Cessna`). |
 | `callsign` | Callsign or airline to match: an ICAO callsign or code (`DLH123`, `DLH`) or an airline name (`Lufthansa`). The airline is looked up in the loaded models list itself (its airline code column and livery names); the toolbar shows which one was found. That airline's liveries are listed first and an installed type that has one is preferred as the best match (unless it is more than 15 points less similar). Without a models list it has no effect. |
 | `aircraft-title` | Title of the remote aircraft (not `title`, which is the browser's tooltip attribute). For a collapsed ICAO designator (`GLID`, `GLIM`, `UHEL` ...) the title picks the line of the data that describes the aircraft (its title hints), and with a models list the installed model JoinFS would inject is marked. Select the designator first (`search=GLID`). Without a models list it only picks the line. |
-| `k` | Neighbours per aircraft used for links (1-12, default 4). |
+| `k` | Neighbours per aircraft used for links (1-12, default 10). |
 | `min-proximity` | Minimum proximity in percent for links (default 20). |
 
 ## Installed models and liveries

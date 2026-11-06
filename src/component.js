@@ -7,6 +7,7 @@ import { schemeTableau10 } from 'd3-scale-chromatic';
 import { extent, quantile } from 'd3-array';
 import { buildIndex, neighbourOf, MAX_POINTS } from './proximity.js';
 import { parseModels, groupModels, pickRow, titleFit, virtualAircraft, isLookupLine, resolveAirline, callsignScore, modelScore } from './models.js';
+import { matcherOrder } from './sidebar-order.js';
 import { createMatcher, makeReference, makeDoc8643, makeAirlines } from './joinfs-matcher.js';
 import { COMPONENT, SCRIPT_URL, pickLanguage, loadLocale, makeTranslator } from './i18n.js';
 import css from './style.css';
@@ -65,7 +66,7 @@ class ProximityChart extends HTMLElement {
     this.t = makeTranslator({});
     this.lang = 'en';
     this.s = {
-      search: '', callsign: '', title: '', colorBy: 'engineType', k: 4, minProx: 20,
+      search: '', callsign: '', title: '', colorBy: 'engineType', k: 10, minProx: 20,
       filters: { engineType: '', engines: '', wing: '', gear: '', manufacturer: '' },
       focus: null, openWhy: new Set(), livery: null,
     };
@@ -239,11 +240,18 @@ class ProximityChart extends HTMLElement {
         const air = this.index.aircraft;
         const effective = found.ranking.find(r => r.model === found.model)?.effectiveIcao;
         const node = this.nodeOfModel.get(found.model.source) ?? (effective ? air.findIndex(a => a.icao === effective) : -1);
-        if (node >= 0) this.injectedValue = { model: found.model.source, node, total: found.total, type: found.type };
+        if (node >= 0) this.injectedValue = { model: found.model.source, node, total: found.total, type: found.type, scores: this.#rankedScores(found) };
       }
       this.livCache.clear();
     }
     return this.injectedValue;
+  }
+
+  /** The matcher's ranking as one entry per installed type, best first: [{ node, score }]. */
+  #rankedScores(found) {
+    const air = this.index.aircraft;
+    const nodeOf = c => this.nodeOfModel.get(c.model.source) ?? (c.effectiveIcao ? air.findIndex(a => a.icao === c.effectiveIcao) : -1);
+    return matcherOrder(found.ranking, found.model, nodeOf, FOCUS_NEIGHBOURS);
   }
 
   #airlineNote() {
@@ -513,7 +521,7 @@ class ProximityChart extends HTMLElement {
     if (s.title.trim()) out['aircraft-title'] = s.title;
     if (s.colorBy !== 'engineType') out['color-by'] = s.colorBy;
     for (const [attr, key] of FILTER_ATTRIBUTES) if (s.filters[key] !== '') out[attr] = s.filters[key];
-    if (s.k !== 4) out.k = String(s.k);
+    if (s.k !== 10) out.k = String(s.k);
     if (s.minProx !== 20) out['min-proximity'] = String(s.minProx);
     if (s.focus !== null && this.index) out.focus = this.index.aircraft[s.focus].icao;
     return out;
@@ -838,18 +846,13 @@ class ProximityChart extends HTMLElement {
     const all = this.index.neighbours[i];
     const list = all.filter(n => n.p.percent * 100 >= this.s.minProx).slice(0, FOCUS_NEIGHBOURS);
     if (!this.models) return list;
-    // the aircraft JoinFS would inject for the title (see joinfs-matcher.js) is always listed, with its real position (e.g. "(22)"), even when types that are
-    // closer but not installed fill the list: the closer ones are greyed out, the matched one takes the last place
-    const matched = i === this.s.focus ? this.#injected()?.node : undefined;
-    if (matched !== undefined && matched !== i) {
-      if (!list.some(n => n.index === matched)) {
-        const extra = neighbourOf(this.index, i, matched);
-        if (extra) {
-          if (list.length >= FOCUS_NEIGHBOURS) list.pop();
-          list.push(extra);
-        }
-      }
-      return list;
+    // the types JoinFS chooses between for this remote come first, in the matcher's order (the real position among all types stays shown, e.g. "(22)");
+    // the types that merely look similar follow, the not installed ones greyed out
+    const ranked = i === this.s.focus ? this.#injected()?.scores : undefined;
+    if (ranked?.length) {
+      const chosen = ranked.filter(r => r.node !== i).map(r => ({ ...neighbourOf(this.index, i, r.node), score: r.score })).filter(n => n.p);
+      const rest = list.filter(n => !chosen.some(c => c.index === n.index));
+      return [...chosen, ...rest].slice(0, Math.max(FOCUS_NEIGHBOURS, chosen.length));
     }
     if (!this.#isAvail(i) && !list.some(n => this.#isAvail(n.index))) {
       const at = all.findIndex(n => this.#isAvail(n.index));
@@ -960,7 +963,7 @@ class ProximityChart extends HTMLElement {
   #similarRow(nb, best) {
     const t = this.t;
     const b = this.index.aircraft[nb.index];
-    const pct = Math.round(nb.p.percent * 100);
+    const pct = nb.p.physical.points; // the physical similarity; the manufacturer bonus and the matcher's score are shown next to it
     const open = this.s.openWhy.has(nb.index);
     const li = h('li', { class: this.models && !this.#isAvail(nb.index) ? 'unavail' : nb.index === best ? 'best' : null },
       h('div', { class: 'row' },
@@ -968,6 +971,7 @@ class ProximityChart extends HTMLElement {
           nb.index === best ? this.#check(' ') : null,
           h('b', {}, b.icao), h('span', { class: 'pct' }, `${pct}%`), nb.rank ? h('span', { class: 'rank' }, t('detail.rank', { n: nb.rank })) : null,
           h('small', {}, `${b.name} · ${b.manufacturer === '-' ? t('detail.noManufacturer') : b.manufacturer}`),
+          nb.p.manufacturerBonus || nb.score !== undefined ? h('small', { class: 'extras' }, [nb.p.manufacturerBonus ? `+${nb.p.manufacturerBonus} ${t('detail.bonusManufacturer')}` : '', nb.score !== undefined ? t('detail.joinfsScore', { n: nb.score }) : ''].filter(Boolean).join(' · ')) : null,
           this.#isAvail(nb.index) ? h('small', { class: 'lvline' }, `${nb.index === best ? '✔ ' : ''}${t('detail.livery')}: ${this.#liveryOf(nb.index).livery || this.#liveryOf(nb.index).title}${this.#liveryOf(nb.index).airline ? ` (${this.#liveryOf(nb.index).airline})` : ''}`) : null),
         this.#toggle(nb.index, `${this.#isAvail(nb.index) ? t('detail.liveriesAndWhy') : t('detail.why')} ${b.icao}`)),
       h('div', { class: 'bar', role: 'img', 'aria-label': t('detail.proximity', { n: pct }) }, h('i', { style: `width:${pct}%` })));

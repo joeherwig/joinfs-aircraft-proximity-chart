@@ -189,3 +189,4 @@ button:focus-visible, input:focus-visible, select:focus-visible { outline: 2px s
 .liveries-box.best .cur > div { font-weight: 600; }
 
 .sim .rank { margin-left: 8px; font-size: 11px; color: var(--muted); border: 1px solid var(--border); border-radius: 10px; padding: 0 6px; }
+.sim .extras { display: block; font-size: 11px; color: var(--muted); }

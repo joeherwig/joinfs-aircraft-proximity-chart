@@ -38,6 +38,7 @@
   "detail.why": "Waarom lijkt het erop?",
   "detail.proximity": "Nabijheid: {n}%",
   "detail.points": "Punten: {n}",
+  "detail.joinfsScore": "JoinFS-punten: {n}",
   "detail.bonusManufacturer": "Zelfde fabrikant en vergelijkbare grootte",
   "detail.bonusNearIdentical": "Bijna identiek (zeer vergelijkbare gegevens)",
   "feature.mtow": "Gewicht",

@@ -38,6 +38,7 @@
   "detail.why": "왜 비슷한가요?",
   "detail.proximity": "근접도: {n}%",
   "detail.points": "점수: {n}",
+  "detail.joinfsScore": "JoinFS 점수: {n}",
   "detail.bonusManufacturer": "같은 제조사, 비슷한 크기",
   "detail.bonusNearIdentical": "거의 동일 (제원이 매우 비슷함)",
   "feature.mtow": "중량",

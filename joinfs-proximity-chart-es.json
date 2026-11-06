@@ -38,6 +38,7 @@
   "detail.why": "¿Por qué se parece?",
   "detail.proximity": "Proximidad: {n} %",
   "detail.points": "Puntos: {n}",
+  "detail.joinfsScore": "Puntos de JoinFS: {n}",
   "detail.bonusManufacturer": "Mismo fabricante y tamaño similar",
   "detail.bonusNearIdentical": "Casi idéntico (datos muy parecidos)",
   "feature.mtow": "Peso",

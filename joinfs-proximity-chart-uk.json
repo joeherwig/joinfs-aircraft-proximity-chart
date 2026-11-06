@@ -38,6 +38,7 @@
   "detail.why": "Чому він схожий?",
   "detail.proximity": "Близькість: {n}%",
   "detail.points": "Бали: {n}",
+  "detail.joinfsScore": "Бали JoinFS: {n}",
   "detail.bonusManufacturer": "Той самий виробник і подібний розмір",
   "detail.bonusNearIdentical": "Майже ідентичний (дуже схожі характеристики)",
   "feature.mtow": "Маса",
