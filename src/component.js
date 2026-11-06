@@ -974,13 +974,16 @@ class ProximityChart extends HTMLElement {
     }));
   }
 
-  /** The parts of a row's score, each as "+points label". */
-  #scoreParts(row) {
+  /** One score for a row, with everything that was taken into consideration: the tooltip and the details below the row show the same table. */
+  #scoreTable(row, max, pct) {
     const t = this.t;
-    return [
+    const parts = [
       [row.identity, t('detail.scoreIdentity')], [row.similarity, t('detail.scoreSimilarity')], [row.near, t('detail.bonusNearIdentical')],
       [row.manufacturer, t('detail.bonusManufacturer')], [row.livery, t('detail.scoreLivery')],
-    ].filter(([points]) => points > 0).map(([points, label]) => `+${points} ${label}`);
+    ].filter(([points]) => points > 0);
+    return h('div', { class: 'score' },
+      h('div', { class: 'total' }, t('detail.joinfsScore', { n: row.score, max }), h('b', {}, ` · ${pct}%`)),
+      h('ul', {}, parts.map(([points, label]) => h('li', {}, h('b', {}, `+${points}`), ` ${label}`))));
   }
 
   #similarRow(nb, best) {
@@ -991,13 +994,13 @@ class ProximityChart extends HTMLElement {
     const open = this.s.openWhy.has(nb.index);
     const li = h('li', { class: this.models && !this.#isAvail(nb.index) ? 'unavail' : nb.index === best ? 'best' : null },
       h('div', { class: 'row' },
-        h('button', { class: 'pick', type: 'button', onclick: () => this.#setFocus(nb.index) },
+        h('button', { class: 'pick', type: 'button', 'aria-describedby': `tip-${nb.index}`, onclick: () => this.#setFocus(nb.index) },
           nb.index === best ? this.#check(' ') : null,
-          h('b', {}, b.icao), h('span', { class: 'pct' }, `${pct}%`), nb.rank ? h('span', { class: 'rank' }, t('detail.rank', { n: nb.rank })) : null,
+          h('b', {}, b.icao), h('span', { class: 'pct tipped' }, `${pct}%`), nb.rank ? h('span', { class: 'rank' }, t('detail.rank', { n: nb.rank })) : null,
           h('small', {}, `${b.name} · ${b.manufacturer === '-' ? t('detail.noManufacturer') : b.manufacturer}`),
-          h('small', { class: 'extras' }, [t('detail.joinfsScore', { n: row.score, max: nb.max }), ...this.#scoreParts(row)].join(' · ')),
           this.#isAvail(nb.index) ? h('small', { class: 'lvline' }, `${nb.index === best ? '✔ ' : ''}${t('detail.livery')}: ${this.#liveryOf(nb.index).livery || this.#liveryOf(nb.index).title}${this.#liveryOf(nb.index).airline ? ` (${this.#liveryOf(nb.index).airline})` : ''}`) : null),
-        this.#toggle(nb.index, `${this.#isAvail(nb.index) ? t('detail.liveriesAndWhy') : t('detail.why')} ${b.icao}`)),
+        this.#toggle(nb.index, `${this.#isAvail(nb.index) ? t('detail.liveriesAndWhy') : t('detail.why')} ${b.icao}`),
+        h('div', { class: 'tip', id: `tip-${nb.index}`, role: 'tooltip' }, this.#scoreTable(row, nb.max, pct))),
       h('div', { class: 'bar', role: 'img', 'aria-label': t('detail.proximity', { n: pct }) }, h('i', { style: `width:${pct}%` })));
     if (open && this.#isAvail(nb.index)) li.append(this.#liveryList(nb.index));
     if (open) {
@@ -1005,9 +1008,7 @@ class ProximityChart extends HTMLElement {
         nb.p.physical.parts.map(p => h('div', { class: 'f' }, t(`feature.${p.feature}`),
           h('div', { class: 'bar', role: 'img', 'aria-label': `${t(`feature.${p.feature}`)}: ${Math.round((1 - p.distance) * 100)}%` },
             h('i', { style: `width:${(1 - p.distance) * 100}%` })))),
-        nb.p.manufacturerBonus ? h('span', { class: 'chip' }, `+${nb.p.manufacturerBonus} ${t('detail.bonusManufacturer')}`) : null,
-        nb.p.nearIdenticalBonus ? h('span', { class: 'chip' }, `+${nb.p.nearIdenticalBonus} ${t('detail.bonusNearIdentical')}`) : null,
-        h('div', {}, `${t('detail.points', { n: nb.p.total })} / ${MAX_POINTS}`)));
+        this.#scoreTable(row, nb.max, pct)));
     }
     return li;
   }

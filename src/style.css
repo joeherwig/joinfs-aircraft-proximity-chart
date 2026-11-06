@@ -189,4 +189,17 @@ button:focus-visible, input:focus-visible, select:focus-visible { outline: 2px s
 .liveries-box.best .cur > div { font-weight: 600; }
 
 .sim .rank { margin-left: 8px; font-size: 11px; color: var(--muted); border: 1px solid var(--border); border-radius: 10px; padding: 0 6px; }
-.sim .extras { display: block; font-size: 11px; color: var(--muted); }
+
+/* the score of a row, as a tooltip over the row (hover or keyboard focus) and as the same table in the details */
+.sim .row { position: relative; }
+.sim .pct.tipped { border-bottom: 1px dotted var(--muted); cursor: help; }
+.sim .tip {
+  display: none; position: absolute; z-index: 5; left: 6px; right: 6px; top: calc(100% - 4px); pointer-events: none;
+  background: var(--panel); color: var(--text); border: 1px solid var(--border); border-radius: 8px; padding: 8px 10px; font-size: 12px;
+  box-shadow: 0 6px 20px rgba(0, 0, 0, .35);
+}
+.sim .row:hover .tip, .sim .row:focus-within .tip { display: block; }
+.score .total { font-weight: 600; margin-bottom: 4px; }
+.score ul { list-style: none; margin: 0; padding: 0; }
+.score li { border: 0; padding: 1px 0; }
+.score li b { display: inline-block; min-width: 3.2em; text-align: right; font-variant-numeric: tabular-nums; color: var(--accent); }
