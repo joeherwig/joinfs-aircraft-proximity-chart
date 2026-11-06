@@ -858,7 +858,8 @@ class ProximityChart extends HTMLElement {
       // no matcher (no models list, or a neighbour list of an unselected aircraft): the data alone earns the points
       return withScores([], ranked).map((row, k) => ({ ...ranked[k], row, max }));
     }
-    return [...ranked, ...rest].map(n => ({ ...n, row: byNode.get(n.index), max }));
+    const byIndex = new Map([...ranked, ...rest].map(n => [n.index, n]));
+    return rows.map(row => ({ ...byIndex.get(row.node), row, max })); // in the order of the rows: a type that is not installed sits where its own score puts it
   }
 
   #focusNeighbours(i) {
@@ -872,7 +873,7 @@ class ProximityChart extends HTMLElement {
     if (injected?.scores.length) {
       const order = injected.scores.filter(r => r.node !== i).filter(r => neighbourOf(this.index, i, r.node));
       const rest = list.filter(n => !order.some(o => o.node === n.index) && this.#listed(n.index));
-      return this.#scored(order.map(o => ({ ...neighbourOf(this.index, i, o.node) })), rest, injected.max, order).slice(0, Math.max(FOCUS_NEIGHBOURS, order.length));
+      return this.#scored(order.map(o => ({ ...neighbourOf(this.index, i, o.node) })), rest, injected.max, order); // every matcher-ranked type, plus the types that are not installed when the option is on
     }
     if (!this.#isAvail(i) && !list.some(n => this.#isAvail(n.index))) {
       const at = all.findIndex(n => this.#isAvail(n.index));
