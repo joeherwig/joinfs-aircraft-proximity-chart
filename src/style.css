@@ -126,9 +126,9 @@ button:focus-visible, input:focus-visible, select:focus-visible { outline: 2px s
 .node.unavail.focus { --o: 1; }
 .node text.check { display: none; fill: var(--ok); font-weight: 900; font-size: calc(16px * var(--inv, 1)); text-anchor: start; }
 .node.best text.check { display: block; }
-.sim li.unavail { opacity: .55; }
+.sim li.unavail .pick, .sim li.unavail .why, .sim li.unavail > .breakdown { opacity: .55; } /* the row is dimmed part by part: an opacity on the li itself would make its tooltip see-through */
 .sim li.unavail .bar i { background: #8a909b; }
-.sim li.unavail .bar { opacity: .6; }
+.sim li.unavail > .bar { opacity: .35; }
 .liveries-box h3 { display: flex; align-items: baseline; gap: 6px; }
 .lvfilter { width: 100%; font: inherit; color: var(--text); background: var(--bg); border: 1px solid var(--border); border-radius: 4px; padding: 3px 6px; min-height: 28px; margin-bottom: 4px; }
 .liveries { list-style: none; margin: 0 0 8px; padding: 0; max-height: 240px; overflow: auto; border: 1px solid var(--border); border-radius: 4px; }
