@@ -336,7 +336,7 @@ function finish(result, features) {
   if (totalWeight <= 0) { result.score = 0; result.confidence = 0; return result; }
   result.score = features.reduce((s, f) => s + f.weight * (1 - f.distance) / totalWeight, 0);
   const sizeKnown = features.some(f => ['Mtow', 'Span', 'Length'].includes(f.feature));
-  const reference = sizeKnown ? allWeights : W.engineCount + W.engineType + W.gear;
+  const reference = allWeights;
   result.confidence = Math.min(1.0, totalWeight / reference);
   return result;
 }
