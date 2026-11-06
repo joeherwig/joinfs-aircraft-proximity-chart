@@ -7,7 +7,7 @@ import { schemeTableau10 } from 'd3-scale-chromatic';
 import { extent, quantile } from 'd3-array';
 import { buildIndex, neighbourOf, MAX_POINTS } from './proximity.js';
 import { parseModels, groupModels, pickRow, titleFit, virtualAircraft, isLookupLine, resolveAirline, callsignScore, modelScore } from './models.js';
-import { matcherOrder } from './sidebar-order.js';
+import { matcherOrder, withScores, maxScore } from './sidebar-order.js';
 import { createMatcher, makeReference, makeDoc8643, makeAirlines } from './joinfs-matcher.js';
 import { COMPONENT, SCRIPT_URL, pickLanguage, loadLocale, makeTranslator } from './i18n.js';
 import css from './style.css';
@@ -240,14 +240,14 @@ class ProximityChart extends HTMLElement {
         const air = this.index.aircraft;
         const effective = found.ranking.find(r => r.model === found.model)?.effectiveIcao;
         const node = this.nodeOfModel.get(found.model.source) ?? (effective ? air.findIndex(a => a.icao === effective) : -1);
-        if (node >= 0) this.injectedValue = { model: found.model.source, node, total: found.total, type: found.type, scores: this.#rankedScores(found) };
+        if (node >= 0) this.injectedValue = { model: found.model.source, node, total: found.total, type: found.type, scores: this.#rankedScores(found), max: maxScore(!!found.request?.icaoAirline) };
       }
       this.livCache.clear();
     }
     return this.injectedValue;
   }
 
-  /** The matcher's ranking as one entry per installed type, best first: [{ node, score }]. */
+  /** The matcher's ranking as one entry per installed type, best first, with the points of its parts. */
   #rankedScores(found) {
     const air = this.index.aircraft;
     const nodeOf = c => this.nodeOfModel.get(c.model.source) ?? (c.effectiveIcao ? air.findIndex(a => a.icao === c.effectiveIcao) : -1);
@@ -842,17 +842,31 @@ class ProximityChart extends HTMLElement {
    * installed and none of the listed types is, the most similar installed type takes the last place and remembers its real
    * position (`rank`), so the list always holds something that can be used.
    */
+  /**
+   * Gives each neighbour its row: the points of every part, the score and the maximum it is measured against (see sidebar-order.js). `order` holds the matcher's
+   * entries for `ranked` (same order); `rest` are neighbours without a matcher score.
+   */
+  #scored(ranked, rest, max, order = []) {
+    const rows = withScores(order, rest);
+    const byNode = new Map(rows.map(r => [r.node, r]));
+    if (!order.length) {
+      // no matcher (no models list, or a neighbour list of an unselected aircraft): the data alone earns the points
+      return withScores([], ranked).map((row, k) => ({ ...ranked[k], row, max }));
+    }
+    return [...ranked, ...rest].map(n => ({ ...n, row: byNode.get(n.index), max }));
+  }
+
   #focusNeighbours(i) {
     const all = this.index.neighbours[i];
     const list = all.filter(n => n.p.percent * 100 >= this.s.minProx).slice(0, FOCUS_NEIGHBOURS);
-    if (!this.models) return list;
+    if (!this.models) return this.#scored(list, [], MAX_POINTS);
     // the types JoinFS chooses between for this remote come first, in the matcher's order (the real position among all types stays shown, e.g. "(22)");
     // the types that merely look similar follow, the not installed ones greyed out
-    const ranked = i === this.s.focus ? this.#injected()?.scores : undefined;
-    if (ranked?.length) {
-      const chosen = ranked.filter(r => r.node !== i).map(r => ({ ...neighbourOf(this.index, i, r.node), score: r.score })).filter(n => n.p);
-      const rest = list.filter(n => !chosen.some(c => c.index === n.index));
-      return [...chosen, ...rest].slice(0, Math.max(FOCUS_NEIGHBOURS, chosen.length));
+    const injected = i === this.s.focus ? this.#injected() : null;
+    if (injected?.scores.length) {
+      const order = injected.scores.filter(r => r.node !== i).filter(r => neighbourOf(this.index, i, r.node));
+      const rest = list.filter(n => !order.some(o => o.node === n.index));
+      return this.#scored(order.map(o => ({ ...neighbourOf(this.index, i, o.node) })), rest, injected.max, order).slice(0, Math.max(FOCUS_NEIGHBOURS, order.length));
     }
     if (!this.#isAvail(i) && !list.some(n => this.#isAvail(n.index))) {
       const at = all.findIndex(n => this.#isAvail(n.index));
@@ -862,7 +876,7 @@ class ProximityChart extends HTMLElement {
         list.push(extra);
       }
     }
-    return list;
+    return this.#scored(list, [], MAX_POINTS);
   }
 
   #refreshFocus() {
@@ -960,10 +974,20 @@ class ProximityChart extends HTMLElement {
     }));
   }
 
+  /** The parts of a row's score, each as "+points label". */
+  #scoreParts(row) {
+    const t = this.t;
+    return [
+      [row.identity, t('detail.scoreIdentity')], [row.similarity, t('detail.scoreSimilarity')], [row.near, t('detail.bonusNearIdentical')],
+      [row.manufacturer, t('detail.bonusManufacturer')], [row.livery, t('detail.scoreLivery')],
+    ].filter(([points]) => points > 0).map(([points, label]) => `+${points} ${label}`);
+  }
+
   #similarRow(nb, best) {
     const t = this.t;
     const b = this.index.aircraft[nb.index];
-    const pct = nb.p.physical.points; // the physical similarity; the manufacturer bonus and the matcher's score are shown next to it
+    const row = nb.row;
+    const pct = Math.min(100, Math.round((100 * row.score) / nb.max)); // everything that was taken into consideration, as a share of what a perfect candidate would earn
     const open = this.s.openWhy.has(nb.index);
     const li = h('li', { class: this.models && !this.#isAvail(nb.index) ? 'unavail' : nb.index === best ? 'best' : null },
       h('div', { class: 'row' },
@@ -971,7 +995,7 @@ class ProximityChart extends HTMLElement {
           nb.index === best ? this.#check(' ') : null,
           h('b', {}, b.icao), h('span', { class: 'pct' }, `${pct}%`), nb.rank ? h('span', { class: 'rank' }, t('detail.rank', { n: nb.rank })) : null,
           h('small', {}, `${b.name} · ${b.manufacturer === '-' ? t('detail.noManufacturer') : b.manufacturer}`),
-          nb.p.manufacturerBonus || nb.score !== undefined ? h('small', { class: 'extras' }, [nb.p.manufacturerBonus ? `+${nb.p.manufacturerBonus} ${t('detail.bonusManufacturer')}` : '', nb.score !== undefined ? t('detail.joinfsScore', { n: nb.score }) : ''].filter(Boolean).join(' · ')) : null,
+          h('small', { class: 'extras' }, [t('detail.joinfsScore', { n: row.score, max: nb.max }), ...this.#scoreParts(row)].join(' · ')),
           this.#isAvail(nb.index) ? h('small', { class: 'lvline' }, `${nb.index === best ? '✔ ' : ''}${t('detail.livery')}: ${this.#liveryOf(nb.index).livery || this.#liveryOf(nb.index).title}${this.#liveryOf(nb.index).airline ? ` (${this.#liveryOf(nb.index).airline})` : ''}`) : null),
         this.#toggle(nb.index, `${this.#isAvail(nb.index) ? t('detail.liveriesAndWhy') : t('detail.why')} ${b.icao}`)),
       h('div', { class: 'bar', role: 'img', 'aria-label': t('detail.proximity', { n: pct }) }, h('i', { style: `width:${pct}%` })));

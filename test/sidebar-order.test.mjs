@@ -17,8 +17,8 @@ test('matcherOrder keeps the matcher order, one entry per type, and skips what r
   const ranking = [{ model: a, total: 90 }, { model: b, total: 80 }, { model: c, total: 70 }, { model: d, total: 60 }];
   const node = { 1: -1, 2: 7, 3: 7, 4: 5 };
   const order = matcherOrder(ranking, b, c2 => node[c2.model.source.n], 10);
-  assert.deepEqual(order, [{ node: 7, score: 80 }, { node: 5, score: 60 }]);
-  assert.deepEqual(matcherOrder(ranking, b, c2 => node[c2.model.source.n], 1), [{ node: 7, score: 80 }]);
+  assert.deepEqual(order.map(({ node, total }) => ({ node, total })), [{ node: 7, total: 80 }, { node: 5, total: 60 }]);
+  assert.deepEqual(matcherOrder(ranking, b, c2 => node[c2.model.source.n], 1).map(o => o.node), [7]);
   assert.deepEqual(matcherOrder(ranking, { source: {} }, () => 1, 5), []);
 });
 
@@ -31,5 +31,39 @@ test('for an A400 the first installed type is the matcher\'s choice, whatever th
   const order = matcherOrder(found.ranking, found.model, c => (c.model.icaoType === 'C130' ? 1 : 2), 10);
   assert.equal(found.model.icaoType, 'C130');
   assert.equal(order[0].node, 1);
-  assert.ok(order.length < 2 || order[0].score > order[1].score);
+  assert.ok(order.length < 2 || order[0].total > order[1].total);
+});
+
+// ---- the shown score: parts add up, never rises down the list -------------------------------------------------------------------------------------
+
+import { withScores, maxScore, SCORE_MAX } from '../src/sidebar-order.js';
+
+const entry = (node, total, extra = {}) => ({ node, total, identity: 0, similarity: 0, near: 0, manufacturer: 0, liveryFirst: false, ...extra });
+
+test('the score of a row never rises down the list, and the shown parts add up to it', () => {
+  const order = [entry(1, 230, { identity: 155, similarity: 75 }), entry(2, 220, { identity: 115, similarity: 65, manufacturer: 40 }), entry(3, 185, { identity: 55, similarity: 84, manufacturer: 40, near: 6 })];
+  const unranked = [{ index: 9, p: { total: 150, physical: { points: 60 }, nearIdenticalBonus: 0, manufacturerBonus: 40 } }, { index: 8, p: { total: 90, physical: { points: 90 }, nearIdenticalBonus: 0, manufacturerBonus: 0 } }];
+  const rows = withScores(order, unranked);
+  assert.deepEqual(rows.map(r => r.score), [230, 220, 185, 150, 90]);
+  for (const r of rows.slice(0, 3)) assert.equal(r.identity + r.similarity + r.near + r.manufacturer + r.livery, r.score);
+  assert.ok(rows.every((r, i) => i === 0 || r.score <= rows[i - 1].score));
+});
+
+test('a livery-first row is lifted to the best score below it and says so; the order stays the matcher\'s', () => {
+  const order = [entry(1, 185, { identity: 55, similarity: 90, near: 40, liveryFirst: true }), entry(2, 340, { identity: 240, similarity: 100 })];
+  const rows = withScores(order, []);
+  assert.deepEqual(rows.map(r => r.node), [1, 2]);
+  assert.deepEqual(rows.map(r => r.score), [340, 340]);
+  assert.equal(rows[0].livery, 155);
+  assert.equal(rows[0].identity + rows[0].similarity + rows[0].near + rows[0].livery, rows[0].score);
+});
+
+test('an unranked neighbour never shows more than the row above it', () => {
+  const rows = withScores([entry(1, 100)], [{ index: 5, p: { total: 160, physical: { points: 100 }, nearIdenticalBonus: 20, manufacturerBonus: 40 } }]);
+  assert.equal(rows[1].score, 100);
+});
+
+test('the maximum is what a perfect candidate earns; an airline in the request adds its 100 points', () => {
+  assert.equal(maxScore(false), SCORE_MAX);
+  assert.equal(maxScore(true), SCORE_MAX + 100);
 });
