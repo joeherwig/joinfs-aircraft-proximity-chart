@@ -204,3 +204,5 @@ button:focus-visible, input:focus-visible, select:focus-visible { outline: 2px s
 .score li { border: 0; padding: 1px 0; }
 .score li b { display: inline-block; min-width: 3.2em; text-align: right; font-variant-numeric: tabular-nums; color: var(--accent); }
 .breakdown .f.muted { color: var(--muted); }
+.filters-body label.inline { flex-direction: row; align-items: center; gap: 8px; }
+.filters-body label.inline:has(input:disabled) { opacity: .6; }

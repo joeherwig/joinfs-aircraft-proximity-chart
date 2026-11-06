@@ -515,7 +515,7 @@ class ProximityChart extends HTMLElement {
         select_(t('filter.manufacturer'), 'manufacturer', this.#distinct('manufacturer').map(v => ({ value: v, label: v === '-' ? t('detail.noManufacturer') : v })), s.filters.manufacturer, v => this.#setFilter('manufacturer', v)),
         range('toolbar.neighbours', 1, 12, s.k, v => { s.k = v; this.#rebuildGraph(); this.#stateChanged(); }),
         range('toolbar.minProximity', 0, 100, s.minProx, v => { s.minProx = v; this.#rebuildGraph(); this.#stateChanged(); }),
-        this.models ? h('label', { class: 'inline' }, h('input', { type: 'checkbox', checked: s.showUninstalled, onchange: e => { s.showUninstalled = e.target.checked; this.#stateChanged(); if (s.focus !== null) this.#renderPanel(); } }), t('toolbar.showUninstalled')) : null,
+        h('label', { class: 'inline', title: this.models ? null : t('toolbar.showUninstalledHint') }, h('input', { type: 'checkbox', checked: s.showUninstalled, disabled: !this.models, onchange: e => { s.showUninstalled = e.target.checked; this.#stateChanged(); if (s.focus !== null) this.#renderPanel(); } }), t('toolbar.showUninstalled')),
       ];
       const active = Object.values(s.filters).filter(v => v !== '').length;
       const dialog = h('dialog', { class: 'filters-dialog', 'aria-label': t('toolbar.filters') },

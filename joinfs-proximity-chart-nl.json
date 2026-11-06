@@ -11,6 +11,7 @@
   "toolbar.neighbours": "Buren per vliegtuig: {n}",
   "toolbar.minProximity": "Minimale nabijheid: {n}%",
   "toolbar.showUninstalled": "Ook niet-geïnstalleerde vliegtuigen tonen",
+  "toolbar.showUninstalledHint": "Alleen met een geladen modellijst: laad eerst je geïnstalleerde modellen",
   "toolbar.reset": "Herstellen",
   "filter.all": "Alle",
   "filter.engineType": "Motortype",
