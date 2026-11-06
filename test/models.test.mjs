@@ -175,3 +175,11 @@ test('models tagged JS3-15 and JS3-18 sit on the class line that lists them as a
   assert.deepEqual(rowOf(grouped, 'Glider, 18 m class'), ['JS3-18 Waldo']);
   assert.equal(grouped.unmatched, 0);
 });
+
+test('a model without a designator tag is placed by the type its title names, like JoinFS does (an untagged "Cabri G2" is a G2CA)', () => {
+  const untagged = parseModels(['# new separator - DO NOT DELETE THIS LINE', line('Cabri G2 Passengers', 'Flight Seeing 05', ''), line('Totally Unknown Thing', 'X', ''), ''].join('\n'));
+  const { byAircraft, unmatched } = groupModels(untagged, data);
+  const g2ca = data.findIndex(a => a.icao === 'G2CA');
+  assert.equal(byAircraft.get(g2ca)?.length, 1);
+  assert.equal(unmatched, 1);
+});

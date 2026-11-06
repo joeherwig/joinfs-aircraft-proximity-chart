@@ -161,6 +161,20 @@ function rowsNamedIn(text, aircraft, lookup) {
 }
 
 /**
+ * The rows of the type a title names, for a model without a usable designator tag ("Cabri G2 Passengers" has none): the longest title hint of any aircraft
+ * found in the text, like JoinFS' ReferenceSpecs.InferIcaoFromText. A designator's own tag never counts here.
+ */
+function rowsInferredFromTitle(text, aircraft, lookup) {
+  let best = -1, bestLength = 0;
+  aircraft.forEach((a, i) => {
+    if (a.virtual) return;
+    const length = hintLength(a, text);
+    if (length > bestLength) { best = i; bestLength = length; }
+  });
+  return best < 0 ? undefined : lookup.get(squash(aircraft[best].icao));
+}
+
+/**
  * Groups models by the chart's aircraft: Map<aircraft index, models[]>. A model belongs to the aircraft whose ICAO type
  * or alias equals its ICAO type (punctuation ignored); where a designator has several rows (GLID, GLIM ...) the title picks the row
  * (see pickRow). Models without a known type are counted in `unmatched`.
@@ -175,7 +189,7 @@ export function groupModels(models, aircraft) {
   for (const m of models) {
     const text = `${m.title} ${m.livery}`;
     // a tag that is no known designator (MSFS: "JS3-15") or no tag at all: the type is inferred from the title, like JoinFS does
-    const rows = (m.icaoType ? lookup.get(squash(m.icaoType)) : undefined) ?? rowsNamedIn(text, aircraft, lookup);
+    const rows = (m.icaoType ? lookup.get(squash(m.icaoType)) : undefined) ?? rowsNamedIn(text, aircraft, lookup) ?? rowsInferredFromTitle(text, aircraft, lookup);
     if (rows === undefined) { unmatched++; continue; }
     const i = rows.length > 1 ? pickRow(rows, aircraft, text) : rows[0];
     const key = `${i}${m.title}${m.livery}`;
