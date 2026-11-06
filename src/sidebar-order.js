@@ -6,6 +6,14 @@
 /** What a perfect candidate scores: type 200 + class code 100 + weight class 40 + role 15 + similarity 100 + near-identical 60 + manufacturer 40; an airline match adds 100. */
 export const SCORE_MAX = 555;
 export const AIRLINE_POINTS = 100;
+/** The identity points of a row by reason, in the order they are shown; what the reasons do not cover is the shared words of the titles. */
+export const IDENTITY_REASONS = ['IcaoType', 'IcaoAirline', 'ClassCode', 'Wtc', 'Typerole'];
+export function identityParts(row) {
+  const parts = IDENTITY_REASONS.map(reason => ({ reason, points: row.attrs?.[reason] ?? 0 })).filter(p => p.points > 0);
+  const rest = (row.identity ?? 0) - parts.reduce((sum, p) => sum + p.points, 0);
+  if (rest > 0) parts.push({ reason: 'Title', points: rest });
+  return parts;
+}
 export const maxScore = withAirline => SCORE_MAX + (withAirline ? AIRLINE_POINTS : 0);
 
 /**
@@ -13,7 +21,7 @@ export const maxScore = withAirline => SCORE_MAX + (withAirline ? AIRLINE_POINTS
  * @param {object} winner  the model the matcher chose (its entry and the better ranked, unacceptable ones, are skipped)
  * @param {(entry:object)=>number} nodeOf  the chart node of a ranking entry, or -1
  * @param {number} limit
- * @returns {{node:number, total:number, identity:number, similarity:number, near:number, manufacturer:number, liveryFirst:boolean}[]}  one entry per installed type (its best model), best first
+ * @returns {{node:number, total:number, identity:number, attrs:object, similarity:number, near:number, manufacturer:number, liveryFirst:boolean}[]}  one entry per installed type (its best model), best first
  */
 export function matcherOrder(ranking, winner, nodeOf, limit) {
   const start = ranking.findIndex(c => c.model === winner);
@@ -24,7 +32,7 @@ export function matcherOrder(ranking, winner, nodeOf, limit) {
     if (node < 0 || seen.has(node)) continue;
     seen.add(node);
     order.push({
-      node, total: c.total, identity: c.baseline ?? 0, similarity: c.similarityPoints ?? 0, near: c.nearPoints ?? 0, manufacturer: c.familyBonus ?? 0, liveryFirst: !!c.liveryFirst,
+      node, total: c.total, identity: c.baseline ?? 0, attrs: c.attrs ?? {}, similarity: c.similarityPoints ?? 0, near: c.nearPoints ?? 0, manufacturer: c.familyBonus ?? 0, liveryFirst: !!c.liveryFirst,
     });
     if (order.length >= limit) break;
   }

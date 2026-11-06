@@ -7,7 +7,7 @@ import { schemeTableau10 } from 'd3-scale-chromatic';
 import { extent, quantile } from 'd3-array';
 import { buildIndex, neighbourOf, MAX_POINTS } from './proximity.js';
 import { parseModels, groupModels, pickRow, titleFit, virtualAircraft, isLookupLine, resolveAirline, callsignScore, modelScore } from './models.js';
-import { matcherOrder, withScores, maxScore } from './sidebar-order.js';
+import { matcherOrder, withScores, maxScore, identityParts } from './sidebar-order.js';
 import { createMatcher, makeReference, makeDoc8643, makeAirlines } from './joinfs-matcher.js';
 import { COMPONENT, SCRIPT_URL, pickLanguage, loadLocale, makeTranslator } from './i18n.js';
 import css from './style.css';
@@ -978,7 +978,7 @@ class ProximityChart extends HTMLElement {
   #scoreTable(row, max, pct) {
     const t = this.t;
     const parts = [
-      [row.identity, t('detail.scoreIdentity')], [row.similarity, t('detail.scoreSimilarity')], [row.near, t('detail.bonusNearIdentical')],
+      ...identityParts(row).map(({ reason, points }) => [points, t(`detail.score${reason}`)]), [row.similarity, t('detail.scoreSimilarity')], [row.near, t('detail.bonusNearIdentical')],
       [row.manufacturer, t('detail.bonusManufacturer')], [row.livery, t('detail.scoreLivery')],
     ].filter(([points]) => points > 0);
     return h('div', { class: 'score' },

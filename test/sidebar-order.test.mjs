@@ -36,7 +36,7 @@ test('for an A400 the first installed type is the matcher\'s choice, whatever th
 
 // ---- the shown score: parts add up, never rises down the list -------------------------------------------------------------------------------------
 
-import { withScores, maxScore, SCORE_MAX } from '../src/sidebar-order.js';
+import { withScores, maxScore, identityParts, SCORE_MAX } from '../src/sidebar-order.js';
 
 const entry = (node, total, extra = {}) => ({ node, total, identity: 0, similarity: 0, near: 0, manufacturer: 0, liveryFirst: false, ...extra });
 
@@ -66,4 +66,11 @@ test('an unranked neighbour never shows more than the row above it', () => {
 test('the maximum is what a perfect candidate earns; an airline in the request adds its 100 points', () => {
   assert.equal(maxScore(false), SCORE_MAX);
   assert.equal(maxScore(true), SCORE_MAX + 100);
+});
+
+test('the identity points are listed by reason, the rest is the shared title words', () => {
+  const parts = identityParts({ identity: 170, attrs: { ClassCode: 100, Wtc: 40, Typerole: 15 } });
+  assert.deepEqual(parts, [{ reason: 'ClassCode', points: 100 }, { reason: 'Wtc', points: 40 }, { reason: 'Typerole', points: 15 }, { reason: 'Title', points: 15 }]);
+  assert.deepEqual(identityParts({ identity: 0, attrs: {} }), []);
+  assert.deepEqual(identityParts({ identity: 200, attrs: { IcaoType: 200 } }), [{ reason: 'IcaoType', points: 200 }]);
 });
