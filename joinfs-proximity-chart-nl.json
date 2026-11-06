@@ -10,6 +10,7 @@
   "toolbar.colorBy": "Kleur op basis van",
   "toolbar.neighbours": "Buren per vliegtuig: {n}",
   "toolbar.minProximity": "Minimale nabijheid: {n}%",
+  "toolbar.showUninstalled": "Ook niet-geïnstalleerde vliegtuigen tonen",
   "toolbar.reset": "Herstellen",
   "filter.all": "Alle",
   "filter.engineType": "Motortype",

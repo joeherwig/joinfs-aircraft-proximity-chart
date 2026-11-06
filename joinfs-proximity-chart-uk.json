@@ -10,6 +10,7 @@
   "toolbar.colorBy": "Розфарбувати за",
   "toolbar.neighbours": "Сусідів на літак: {n}",
   "toolbar.minProximity": "Мінімальна близькість: {n}%",
+  "toolbar.showUninstalled": "Показувати й не встановлені літаки",
   "toolbar.reset": "Скинути",
   "filter.all": "Усі",
   "filter.engineType": "Тип двигуна",

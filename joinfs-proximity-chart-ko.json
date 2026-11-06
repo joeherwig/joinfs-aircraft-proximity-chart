@@ -10,6 +10,7 @@
   "toolbar.colorBy": "색상 기준",
   "toolbar.neighbours": "항공기당 이웃 수: {n}",
   "toolbar.minProximity": "최소 근접도: {n}%",
+  "toolbar.showUninstalled": "설치되지 않은 항공기도 표시",
   "toolbar.reset": "초기화",
   "filter.all": "전체",
   "filter.engineType": "엔진 종류",

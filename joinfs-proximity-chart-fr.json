@@ -10,6 +10,7 @@
   "toolbar.colorBy": "Colorer par",
   "toolbar.neighbours": "Voisins par aéronef : {n}",
   "toolbar.minProximity": "Proximité minimale : {n} %",
+  "toolbar.showUninstalled": "Lister aussi les aéronefs non installés",
   "toolbar.reset": "Réinitialiser",
   "filter.all": "Tous",
   "filter.engineType": "Type de moteur",

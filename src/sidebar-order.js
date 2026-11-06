@@ -42,7 +42,7 @@ export function matcherOrder(ranking, winner, nodeOf, limit) {
 /**
  * Gives every row the score it is shown with and the points of its parts, so that the score never rises down the list:
  * an airliner of the requested airline ranks before models with more points (the livery tier) - its shown score is lifted to the best of the rows below and the
- * lift is listed as a part of its own. Types that are not installed (no matcher score) follow with the points their data alone earns, capped by the row above.
+ * lift is listed as a part of its own. Types without a matcher score (not installed) are placed by the points their data alone earns, capped by the row above.
  * @param {ReturnType<typeof matcherOrder>} order
  * @param {{node:number, p:object}[]} unranked  neighbours that merely look similar, best first
  */
@@ -56,10 +56,12 @@ export function withScores(order, unranked) {
     ceiling = score;
     rows.push({ ...o, score, livery: Math.max(0, score - o.total) });
   });
-  for (const n of unranked) {
-    const score = Math.min(n.p.total, ceiling);
-    ceiling = score;
-    rows.push({ node: n.index, score, identity: 0, similarity: n.p.physical.points, near: n.p.nearIdenticalBonus, manufacturer: n.p.manufacturerBonus, livery: 0, liveryFirst: false, unranked: true });
+  // a type that merely looks similar takes the place its own score earns among the rows (never before the matcher's choice), capped by the row above it
+  for (const n of [...unranked].sort((x, y) => y.p.total - x.p.total)) {
+    const at = rows.findIndex((r, i) => i > 0 && r.score < n.p.total);
+    const place = at < 0 ? rows.length : at;
+    const score = Math.min(n.p.total, rows[place - 1]?.score ?? Infinity);
+    rows.splice(place, 0, { node: n.index, score, identity: 0, similarity: n.p.physical.points, near: n.p.nearIdenticalBonus, manufacturer: n.p.manufacturerBonus, livery: 0, liveryFirst: false, unranked: true });
   }
   return rows;
 }

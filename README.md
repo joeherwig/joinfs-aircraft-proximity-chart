@@ -32,6 +32,7 @@ Data and language files are resolved relative to the script's own URL, so the pa
 | `aircraft-title` | Title of the remote aircraft (not `title`, which is the browser's tooltip attribute). For a collapsed ICAO designator (`GLID`, `GLIM`, `UHEL` ...) the title picks the line of the data that describes the aircraft (its title hints), and with a models list the installed model JoinFS would inject is marked. Select the designator first (`search=GLID`). Without a models list it only picks the line. |
 | `k` | Neighbours per aircraft used for links (1-12, default 10). |
 | `min-proximity` | Minimum proximity in percent for links (default 20). |
+| `show-uninstalled` | `true` also lists aircraft that are not installed in the sidebar (only with a models list loaded; default: installed types only). Also a checkbox in *Filters & view*. |
 
 ## Installed models and liveries
 

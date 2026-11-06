@@ -60,7 +60,7 @@ function h(tag, attrs = {}, ...children) {
 }
 
 class ProximityChart extends HTMLElement {
-  static get observedAttributes() { return ['lang', 'src', 'focus', 'k', 'min-proximity', 'search', 'color-by', 'engine-type', 'engines', 'wing', 'gear', 'manufacturer', 'callsign', 'aircraft-title']; }
+  static get observedAttributes() { return ['lang', 'src', 'focus', 'k', 'min-proximity', 'search', 'color-by', 'engine-type', 'engines', 'wing', 'gear', 'manufacturer', 'callsign', 'aircraft-title', 'show-uninstalled']; }
 
   constructor() {
     super();
@@ -68,7 +68,7 @@ class ProximityChart extends HTMLElement {
     this.t = makeTranslator({});
     this.lang = 'en';
     this.s = {
-      search: '', callsign: '', title: '', colorBy: 'engineType', k: 10, minProx: 20,
+      search: '', callsign: '', title: '', colorBy: 'engineType', k: 10, minProx: 20, showUninstalled: false,
       filters: { engineType: '', engines: '', wing: '', gear: '', manufacturer: '' },
       focus: null, openWhy: new Set(), livery: null,
     };
@@ -317,6 +317,7 @@ class ProximityChart extends HTMLElement {
     if (k >= 1 && k <= 12) this.s.k = k;
     const m = parseFloat(this.getAttribute('min-proximity'));
     if (m >= 0 && m <= 100) this.s.minProx = m;
+    this.s.showUninstalled = ['', 'true', '1'].includes((this.getAttribute('show-uninstalled') ?? 'false').toLowerCase());
     const s = this.s;
     s.search = this.getAttribute('search') ?? '';
     s.callsign = this.getAttribute('callsign') ?? '';
@@ -494,6 +495,7 @@ class ProximityChart extends HTMLElement {
         select_(t('filter.manufacturer'), 'manufacturer', this.#distinct('manufacturer').map(v => ({ value: v, label: v === '-' ? t('detail.noManufacturer') : v })), s.filters.manufacturer, v => this.#setFilter('manufacturer', v)),
         range('toolbar.neighbours', 1, 12, s.k, v => { s.k = v; this.#rebuildGraph(); this.#stateChanged(); }),
         range('toolbar.minProximity', 0, 100, s.minProx, v => { s.minProx = v; this.#rebuildGraph(); this.#stateChanged(); }),
+        this.models ? h('label', { class: 'inline' }, h('input', { type: 'checkbox', checked: s.showUninstalled, onchange: e => { s.showUninstalled = e.target.checked; this.#stateChanged(); if (s.focus !== null) this.#renderPanel(); } }), t('toolbar.showUninstalled')) : null,
       ];
       const active = Object.values(s.filters).filter(v => v !== '').length;
       const dialog = h('dialog', { class: 'filters-dialog', 'aria-label': t('toolbar.filters') },
@@ -525,6 +527,7 @@ class ProximityChart extends HTMLElement {
     for (const [attr, key] of FILTER_ATTRIBUTES) if (s.filters[key] !== '') out[attr] = s.filters[key];
     if (s.k !== 10) out.k = String(s.k);
     if (s.minProx !== 20) out['min-proximity'] = String(s.minProx);
+    if (s.showUninstalled) out['show-uninstalled'] = 'true';
     if (s.focus !== null && this.index) out.focus = this.index.aircraft[s.focus].icao;
     return out;
   }
@@ -862,12 +865,13 @@ class ProximityChart extends HTMLElement {
     const all = this.index.neighbours[i];
     const list = all.filter(n => n.p.percent * 100 >= this.s.minProx).slice(0, FOCUS_NEIGHBOURS);
     if (!this.models) return this.#scored(list, [], MAX_POINTS);
+    const shown = rows => this.s.showUninstalled ? rows : rows.filter(n => this.#isAvail(n.index));
     // the types JoinFS chooses between for this remote come first, in the matcher's order (the real position among all types stays shown, e.g. "(22)");
     // the types that merely look similar follow, the not installed ones greyed out
     const injected = i === this.s.focus ? this.#injected() : null;
     if (injected?.scores.length) {
       const order = injected.scores.filter(r => r.node !== i).filter(r => neighbourOf(this.index, i, r.node));
-      const rest = list.filter(n => !order.some(o => o.node === n.index));
+      const rest = list.filter(n => !order.some(o => o.node === n.index) && this.#listed(n.index));
       return this.#scored(order.map(o => ({ ...neighbourOf(this.index, i, o.node) })), rest, injected.max, order).slice(0, Math.max(FOCUS_NEIGHBOURS, order.length));
     }
     if (!this.#isAvail(i) && !list.some(n => this.#isAvail(n.index))) {
@@ -878,8 +882,11 @@ class ProximityChart extends HTMLElement {
         list.push(extra);
       }
     }
-    return this.#scored(list, [], MAX_POINTS);
+    return this.#scored(shown(list), [], MAX_POINTS);
   }
+
+  /** Whether a type without a matcher score is listed: an installed one always is, one that is not installed only when the option is on. */
+  #listed(i) { return this.s.showUninstalled || this.#isAvail(i); }
 
   #refreshFocus() {
     const i = this.s.focus;

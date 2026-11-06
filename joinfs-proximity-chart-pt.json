@@ -10,6 +10,7 @@
   "toolbar.colorBy": "Colorir por",
   "toolbar.neighbours": "Vizinhos por aeronave: {n}",
   "toolbar.minProximity": "Proximidade mínima: {n}%",
+  "toolbar.showUninstalled": "Listar também aeronaves não instaladas",
   "toolbar.reset": "Repor",
   "filter.all": "Todos",
   "filter.engineType": "Tipo de motor",

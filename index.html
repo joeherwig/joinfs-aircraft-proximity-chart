@@ -36,7 +36,7 @@
     // &manufacturer=Cessna&k=6&min-proximity=40&focus=C177
     const chart = document.getElementById('chart');
     const params = new URLSearchParams(location.search);
-    const PARAMS = ['lang', 'search', 'color-by', 'engine-type', 'engines', 'wing', 'gear', 'manufacturer', 'callsign', 'theme', 'k', 'min-proximity', 'focus'];
+    const PARAMS = ['lang', 'search', 'color-by', 'engine-type', 'engines', 'wing', 'gear', 'manufacturer', 'callsign', 'theme', 'k', 'min-proximity', 'show-uninstalled', 'focus'];
     if (chart) for (const name of PARAMS) if (params.get(name)) chart.setAttribute(name, params.get(name));
     // q, s and icao are aliases of search: ?icao=C177 (what JoinFS passes) is the same as typing C177 into the
     // search box and confirming it. search wins over q, q over s, s over icao.

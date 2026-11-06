@@ -10,6 +10,7 @@
   "toolbar.colorBy": "Colora per",
   "toolbar.neighbours": "Vicini per aeromobile: {n}",
   "toolbar.minProximity": "Prossimità minima: {n} %",
+  "toolbar.showUninstalled": "Elenca anche gli aeromobili non installati",
   "toolbar.reset": "Ripristina",
   "filter.all": "Tutti",
   "filter.engineType": "Tipo di motore",

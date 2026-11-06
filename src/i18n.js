@@ -23,6 +23,7 @@ export const EN = {
   'toolbar.colorBy': 'Colour by',
   'toolbar.neighbours': 'Neighbours per aircraft: {n}',
   'toolbar.minProximity': 'Minimum proximity: {n}%',
+  'toolbar.showUninstalled': 'Also list aircraft that are not installed',
   'toolbar.filters': 'Filters & view',
   'toolbar.callsign': 'Callsign',
   'toolbar.callsignPlaceholder': 'e.g. DLH123 or Lufthansa',

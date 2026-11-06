@@ -74,3 +74,14 @@ test('the identity points are listed by reason, the rest is the shared title wor
   assert.deepEqual(identityParts({ identity: 0, attrs: {} }), []);
   assert.deepEqual(identityParts({ identity: 200, attrs: { IcaoType: 200 } }), [{ reason: 'IcaoType', points: 200 }]);
 });
+
+test('a type without a matcher score is placed by its own points among the rows, never before the choice of the matcher', () => {
+  const order = [entry(1, 230), entry(2, 150)];
+  const unranked = [{ index: 9, p: { total: 200, physical: { points: 100 }, nearIdenticalBonus: 0, manufacturerBonus: 0 } }, { index: 8, p: { total: 40, physical: { points: 40 }, nearIdenticalBonus: 0, manufacturerBonus: 0 } }];
+  const rows = withScores(order, unranked);
+  assert.deepEqual(rows.map(r => r.node), [1, 9, 2, 8]);
+  assert.deepEqual(rows.map(r => r.score), [230, 200, 150, 40]);
+  const high = withScores([entry(1, 100)], [{ index: 7, p: { total: 300, physical: { points: 100 }, nearIdenticalBonus: 0, manufacturerBonus: 0 } }]);
+  assert.deepEqual(high.map(r => r.node), [1, 7]);
+  assert.equal(high[1].score, 100);
+});
