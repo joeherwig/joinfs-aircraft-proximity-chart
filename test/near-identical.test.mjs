@@ -146,3 +146,12 @@ test('an AN2 takes the Beaver, not a type whose only data is "1 piston engine"',
   const found = pick([plain('Jetson One', 'ONE'), plain('DHC-2 Beaver', 'DHC2')], { icaoType: 'AN2', title: '' });
   assert.equal(found.model.title, 'DHC-2 Beaver');
 });
+
+test('a type without spec data gets no similarity credit at all (it can still win on its identity)', () => {
+  const plain = (title, tag) => ({ title, tag, airline: '', role: 'SingleProp', wtc: 'L', classCode: 'L1P', confirmed: true });
+  const found = pick([plain('Jetson One', 'ONE')], { icaoType: 'AN2', title: '' });
+  const entry = found.ranking[0];
+  assert.equal(entry.similarityPoints, 0);
+  assert.equal(entry.similarity.confidence, 0);
+  assert.equal(entry.nearPoints, 0);
+});

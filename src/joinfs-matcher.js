@@ -408,7 +408,7 @@ export function createMatcher({ reference, doc8643, airlines }) {
 
   /** SpecResolver.ForRemote / ForModel: reference data of the type (the title picks the row), else inferred from the title, else coarse from the class code. */
   function resolveSpecs({ tag, title, text, classCode, typerole, classOfTag }) {
-    const resolved = { specs: null, effectiveIcao: '', matchedHint: '' };
+    const resolved = { specs: null, effectiveIcao: '', matchedHint: '', coarseOnly: false };
     const icao = reference.resolveAlias(tag);
     let match = reference.findRowMatch(icao, text);
     if (match) {
@@ -418,6 +418,7 @@ export function createMatcher({ reference, doc8643, airlines }) {
       const row = inferred ? reference.findRowMatch(inferred, text) : null;
       if (row) { resolved.specs = cloneSpecs(row.entry.specs); resolved.matchedHint = row.hint; resolved.effectiveIcao = inferred; }
     }
+    if (!resolved.specs) resolved.coarseOnly = true;
     if (!resolved.specs) resolved.specs = coarse(classCode.length === 3 ? classCode : classOfTag(tag), typerole);
     fillManufacturer(resolved.specs, resolved.effectiveIcao || tag);
     return resolved;
@@ -532,6 +533,7 @@ export function createMatcher({ reference, doc8643, airlines }) {
       if (!candidate) { candidate = forModel(model); specsOf.set(key, candidate); }
       const similarity = compareSpecs(remote.specs, candidate.specs);
       if (similarity.gated) continue;
+      if (candidate.coarseOnly) { similarity.score = 0; similarity.confidence = 0; } // no spec data: nothing was compared, so the model gets no similarity credit
       const familyBonus = sameManufacturerBonus(remote.specs, candidate.specs);
       const similarityPoints = roundEven(SIMILARITY_POINTS_MAX * similarity.score * similarity.confidence);
       const nearPoints = folded ? 0 : nearIdenticalBonus(similarity); // for GLID, GLIM ... the title decides what the tag cannot
