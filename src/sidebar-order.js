@@ -3,11 +3,14 @@
 // code, weight class, role, airline), the physical similarity, the near-identical and manufacturer bonuses and, for an airliner of the requested airline, the livery
 // tier. The score is shown as points and as a percentage of what a perfect candidate would get; it never rises from one row to the next.
 
-/** What a perfect candidate scores: type 200 + class code 100 + weight class 40 + role 15 + similarity 100 + near-identical 60 + manufacturer 40; an airline match adds 100. */
-export const SCORE_MAX = 555;
+/**
+ * What a perfect candidate scores: class code 100 + weight class 40 + role 15 + similarity 100 + near-identical 60 + manufacturer 40; an airline match adds 100.
+ * The list compares different aircraft types, so the +200 of the exact ICAO type is not part of the score shown (nor of its maximum).
+ */
+export const SCORE_MAX = 355;
 export const AIRLINE_POINTS = 100;
 /** The identity points of a row by reason, in the order they are shown; what the reasons do not cover is the shared words of the titles. */
-export const IDENTITY_REASONS = ['IcaoType', 'IcaoAirline', 'ClassCode', 'Wtc', 'Typerole'];
+export const IDENTITY_REASONS = ['IcaoAirline', 'ClassCode', 'Wtc', 'Typerole'];
 export function identityParts(row) {
   const parts = IDENTITY_REASONS.map(reason => ({ reason, points: row.attrs?.[reason] ?? 0 })).filter(p => p.points > 0);
   const rest = (row.identity ?? 0) - parts.reduce((sum, p) => sum + p.points, 0);
@@ -31,8 +34,10 @@ export function matcherOrder(ranking, winner, nodeOf, limit) {
     const node = nodeOf(c);
     if (node < 0 || seen.has(node)) continue;
     seen.add(node);
+    const type = c.attrs?.IcaoType ?? 0; // the exact type (or the type a title names) is what the list leaves out
+    const { IcaoType, ...attrs } = c.attrs ?? {};
     order.push({
-      node, total: c.total, identity: c.baseline ?? 0, attrs: c.attrs ?? {}, similarity: c.similarityPoints ?? 0, near: c.nearPoints ?? 0, manufacturer: c.familyBonus ?? 0, liveryFirst: !!c.liveryFirst,
+      node, total: c.total - type, identity: (c.baseline ?? 0) - type, attrs, similarity: c.similarityPoints ?? 0, near: c.nearPoints ?? 0, manufacturer: c.familyBonus ?? 0, liveryFirst: !!c.liveryFirst,
     });
     if (order.length >= limit) break;
   }

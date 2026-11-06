@@ -72,7 +72,6 @@ test('the identity points are listed by reason, the rest is the shared title wor
   const parts = identityParts({ identity: 170, attrs: { ClassCode: 100, Wtc: 40, Typerole: 15 } });
   assert.deepEqual(parts, [{ reason: 'ClassCode', points: 100 }, { reason: 'Wtc', points: 40 }, { reason: 'Typerole', points: 15 }, { reason: 'Title', points: 15 }]);
   assert.deepEqual(identityParts({ identity: 0, attrs: {} }), []);
-  assert.deepEqual(identityParts({ identity: 200, attrs: { IcaoType: 200 } }), [{ reason: 'IcaoType', points: 200 }]);
 });
 
 test('a type without a matcher score is placed by its own points among the rows, never before the choice of the matcher', () => {
@@ -84,4 +83,13 @@ test('a type without a matcher score is placed by its own points among the rows,
   const high = withScores([entry(1, 100)], [{ index: 7, p: { total: 300, physical: { points: 100 }, nearIdenticalBonus: 0, manufacturerBonus: 0 } }]);
   assert.deepEqual(high.map(r => r.node), [1, 7]);
   assert.equal(high[1].score, 100);
+});
+
+test('the exact type is left out of the score and of its maximum: only different types are compared', () => {
+  const ranking = [{ model: 'w', total: 430, baseline: 255, attrs: { IcaoType: 120, ClassCode: 100, Wtc: 40, Typerole: 15 }, similarityPoints: 75 }];
+  const [row] = matcherOrder(ranking, 'w', () => 1, 5);
+  assert.equal(row.total, 310);
+  assert.equal(row.identity, 135);
+  assert.equal(row.attrs.IcaoType, undefined);
+  assert.equal(SCORE_MAX, 355);
 });
