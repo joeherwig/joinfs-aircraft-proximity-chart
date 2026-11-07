@@ -7,6 +7,7 @@ import { schemeTableau10 } from 'd3-scale-chromatic';
 import { extent, quantile } from 'd3-array';
 import { buildIndex, neighbourOf, MAX_POINTS } from './proximity.js';
 import { parseModels, groupModels, pickRow, titleFit, virtualAircraft, isLookupLine, resolveAirline, callsignScore, modelScore } from './models.js';
+import { searchTier, bestSearchTier, isSearchHit } from './search.js';
 import { matcherOrder, withScores, maxScore, identityParts } from './sidebar-order.js';
 import { createMatcher, makeReference, makeDoc8643, makeAirlines } from './joinfs-matcher.js';
 import { COMPONENT, SCRIPT_URL, pickLanguage, loadLocale, makeTranslator } from './i18n.js';
@@ -625,24 +626,7 @@ class ProximityChart extends HTMLElement {
     const { search, filters } = this.s;
     const a = d.a;
     for (const [k, v] of Object.entries(filters)) if (v !== '' && String(k === 'engines' ? a.engines : a[k]) !== v) return false;
-    if (search.trim() === '') return true;
-    return this.#searchTier(a) <= this.#bestSearchTier();
-  }
-
-  /**
-   * How well an aircraft matches the search: 1 = ICAO type or alias equals it, 2 = ICAO type or alias starts with it,
-   * 3 = found anywhere (name, manufacturer, title hints, ...), 4 = no match. Punctuation and spaces are ignored, like
-   * JoinFS does when it looks a type tag up (JU-52 = JU52).
-   */
-  #searchTier(a) {
-    const squash = x => x.toLowerCase().replace(/[^a-z0-9]/g, '');
-    const q = this.s.search.trim().toLowerCase();
-    const qs = squash(q);
-    const codes = [a.icao, ...(a.aliases ?? [])].map(squash);
-    if (qs && codes.includes(qs)) return 1;
-    if (qs && codes.some(c => c.startsWith(qs))) return 2;
-    const fields = [a.icao, a.name, a.manufacturer, ...(a.aliases ?? []), ...(a.titleHints ?? [])];
-    return fields.some(x => x.toLowerCase().includes(q) || (qs !== '' && squash(x).includes(qs))) ? 3 : 4;
+    return isSearchHit(a, search, this.#bestSearchTier());
   }
 
   /** Only the best tier that has any hit counts: "C177" finds the Cardinal, not the C-17 whose title hint says "CC-177". */
@@ -650,7 +634,7 @@ class ProximityChart extends HTMLElement {
     const key = this.s.search;
     if (this.bestTierFor !== key) {
       this.bestTierFor = key;
-      this.bestTier = Math.min(4, ...this.nodes.map(d => this.#searchTier(d.a)));
+      this.bestTier = bestSearchTier(this.nodes.map(d => d.a), key);
     }
     return this.bestTier;
   }
